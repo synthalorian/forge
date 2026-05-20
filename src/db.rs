@@ -56,18 +56,18 @@ pub fn connect(cfg: &Config) -> Result<Connection> {
 }
 
 fn row_to_backup_entry(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackupEntry> {
-    let backup_type_str: String = row.get(9)?;
-    let created_at_str: String = row.get(10)?;
+    let backup_type_str: String = row.get("backup_type")?;
+    let created_at_str: String = row.get("created_at")?;
     Ok(BackupEntry {
-        id: row.get(0)?,
-        repo_path: row.get(1)?,
-        repo_name: row.get(2)?,
-        archive_path: row.get(3)?,
-        sha256: row.get(4)?,
-        size_bytes: row.get::<_, i64>(5)? as u64,
-        branch_count: row.get::<_, i64>(6)? as u32,
-        tag_count: row.get::<_, i64>(7)? as u32,
-        commit_count: row.get::<_, i64>(8)? as u32,
+        id: row.get("id")?,
+        repo_path: row.get("repo_path")?,
+        repo_name: row.get("repo_name")?,
+        archive_path: row.get("archive_path")?,
+        sha256: row.get("sha256")?,
+        size_bytes: row.get::<_, i64>("size_bytes")? as u64,
+        branch_count: row.get::<_, i64>("branch_count")? as u32,
+        tag_count: row.get::<_, i64>("tag_count")? as u32,
+        commit_count: row.get::<_, i64>("commit_count")? as u32,
         backup_type: match backup_type_str.as_str() {
             "incremental" => BackupType::Incremental,
             _ => BackupType::Full,
@@ -82,21 +82,6 @@ fn row_to_backup_entry(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackupEntry>
                 )
             })?,
     })
-}
-
-fn format_size(bytes: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = KB * 1024;
-    const GB: u64 = MB * 1024;
-    if bytes >= GB {
-        format!("{:.1} GB", bytes as f64 / GB as f64)
-    } else if bytes >= MB {
-        format!("{:.1} MB", bytes as f64 / MB as f64)
-    } else if bytes >= KB {
-        format!("{:.1} KB", bytes as f64 / KB as f64)
-    } else {
-        format!("{bytes} B")
-    }
 }
 
 pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
@@ -151,12 +136,12 @@ pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
                 "{} {} {} {} {} {}",
                 crate::theme::style_value(&format!("{:<5}", entry.id), theme),
                 crate::theme::style_accent(
-                    &format!("{:<25}", truncate_str(&entry.repo_name, 25)),
+                    &format!("{:<25}", crate::utils::truncate_str(&entry.repo_name, 25)),
                     theme
                 ),
                 crate::theme::style_value(&format!("{:<10}", entry.branch_count), theme),
                 crate::theme::style_value(&format!("{:<6}", entry.tag_count), theme),
-                crate::theme::style_value(&format!("{:<12}", format_size(entry.size_bytes)), theme),
+                crate::theme::style_value(&format!("{:<12}", crate::utils::format_size(entry.size_bytes)), theme),
                 crate::theme::style_value(
                     &entry.created_at.format("%Y-%m-%d %H:%M").to_string(),
                     theme
@@ -166,16 +151,6 @@ pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn truncate_str(s: &str, max_len: usize) -> String {
-    if s.len() <= max_len {
-        s.to_string()
-    } else {
-        let mut truncated: String = s.chars().take(max_len - 1).collect();
-        truncated.push('…');
-        truncated
-    }
 }
 
 pub fn show_status(cfg: &Config) -> Result<()> {
@@ -218,7 +193,7 @@ pub fn show_status(cfg: &Config) -> Result<()> {
     println!(
         "{}     {}",
         crate::theme::style_label("Disk usage:", theme),
-        crate::theme::style_value(&format_size(total_size as u64), theme),
+        crate::theme::style_value(&crate::utils::format_size(total_size as u64), theme),
     );
 
     if unique_repos > 0 {
@@ -236,7 +211,7 @@ pub fn show_status(cfg: &Config) -> Result<()> {
             .context("Failed to prepare per-repo status query")?;
 
         let repo_last: Vec<(String, String)> = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .query_map([], |row| Ok((row.get("repo_name")?, row.get("last_backup")?)))
             .context("Failed to query per-repo status")?
             .collect::<rusqlite::Result<Vec<_>>>()
             .context("Failed to parse per-repo rows")?;
@@ -331,13 +306,13 @@ pub fn list_schedules(conn: &Connection) -> Result<Vec<ScheduleConfig>> {
 
     let schedules: Vec<ScheduleConfig> = stmt
         .query_map([], |row| {
-            let last_run_str: Option<String> = row.get(4)?;
-            let created_at_str: String = row.get(5)?;
-            let enabled_int: i64 = row.get(3)?;
+            let last_run_str: Option<String> = row.get("last_run")?;
+            let created_at_str: String = row.get("created_at")?;
+            let enabled_int: i64 = row.get("enabled")?;
             Ok(ScheduleConfig {
-                id: row.get(0)?,
-                cron_expression: row.get(1)?,
-                target_path: row.get(2)?,
+                id: row.get("id")?,
+                cron_expression: row.get("cron_expression")?,
+                target_path: row.get("target_path")?,
                 enabled: enabled_int != 0,
                 last_run: parse_optional_datetime(last_run_str.as_deref(), 4)?,
                 created_at: parse_datetime(&created_at_str, 5)?,
@@ -458,7 +433,7 @@ pub fn get_backup_chunk_hashes(conn: &Connection, backup_id: i64) -> Result<Vec<
         .prepare("SELECT chunk_hash FROM archive_chunks WHERE backup_id = ?1 ORDER BY chunk_index")
         .context("Failed to prepare chunk hash query")?;
     let hashes: Vec<String> = stmt
-        .query_map([backup_id], |row| row.get(0))
+        .query_map([backup_id], |row| row.get("chunk_hash"))
         .context("Failed to query chunk hashes")?
         .collect::<rusqlite::Result<Vec<_>>>()
         .context("Failed to parse chunk hash rows")?;

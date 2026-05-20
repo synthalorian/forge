@@ -164,11 +164,11 @@ pub fn run(cfg: &Config, args: &ScheduleArgs) -> Result<()> {
                     "{} {} {} {} {}",
                     crate::theme::style_accent(&format!("{:<5}", s.id), theme),
                     crate::theme::style_value(
-                        &format!("{:<20}", truncate_str(&s.cron_expression, 20)),
+                        &format!("{:<20}", crate::utils::truncate_str(&s.cron_expression, 20)),
                         theme
                     ),
                     crate::theme::style_value(
-                        &format!("{:<30}", truncate_str(&s.target_path, 30)),
+                        &format!("{:<30}", crate::utils::truncate_str(&s.target_path, 30)),
                         theme
                     ),
                     crate::theme::style_value(
@@ -182,14 +182,4 @@ pub fn run(cfg: &Config, args: &ScheduleArgs) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn truncate_str(s: &str, max_len: usize) -> String {
-    if s.len() <= max_len {
-        s.to_string()
-    } else {
-        let mut truncated: String = s.chars().take(max_len - 1).collect();
-        truncated.push('…');
-        truncated
-    }
 }

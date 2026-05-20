@@ -20,3 +20,6 @@ Thumbs.db
 # forge data (local only)
 *.tar.zst
 *.db
+
+# OMO / OpenCode artifacts
+.omo/
