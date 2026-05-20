@@ -57,7 +57,7 @@ hex = "0.4"
 dirs = "6"
 
 # Terminal colors
-colored = "3"
+# colored removed — we emit raw 24-bit ANSI truecolor directly for proper Synthwave84 purple rendering
 
 # Temporary directories
 tempfile = "3"
