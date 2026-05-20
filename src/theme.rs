@@ -1,0 +1,361 @@
+use colored::Color;
+use colored::Color::TrueColor;
+use colored::ColoredString;
+use colored::Colorize;
+
+#[derive(Debug, Clone, Copy)]
+pub struct ThemeColor {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
+impl ThemeColor {
+    const fn new(r: u8, g: u8, b: u8) -> Self {
+        Self { r, g, b }
+    }
+
+    fn to_color(self) -> Color {
+        TrueColor {
+            r: self.r,
+            g: self.g,
+            b: self.b,
+        }
+    }
+}
+
+pub struct Theme {
+    pub name: &'static str,
+    pub header: ThemeColor,
+    pub accent: ThemeColor,
+    pub success: ThemeColor,
+    pub error: ThemeColor,
+    pub warning: ThemeColor,
+    pub info: ThemeColor,
+    pub muted: ThemeColor,
+    pub border: ThemeColor,
+    pub value: ThemeColor,
+    pub label: ThemeColor,
+    pub progress_bar: ThemeColor,
+}
+
+pub const SYNTHWAVE84: Theme = Theme {
+    name: "synthwave84",
+    header: ThemeColor::new(3, 237, 249),
+    accent: ThemeColor::new(0, 128, 255),
+    success: ThemeColor::new(131, 0, 255),
+    error: ThemeColor::new(255, 0, 64),
+    warning: ThemeColor::new(243, 231, 15),
+    info: ThemeColor::new(255, 126, 219),
+    muted: ThemeColor::new(97, 77, 133),
+    border: ThemeColor::new(97, 77, 133),
+    value: ThemeColor::new(255, 255, 255),
+    label: ThemeColor::new(3, 237, 249),
+    progress_bar: ThemeColor::new(255, 0, 255),
+};
+
+pub const SYNTHWAVE_NIGHT: Theme = Theme {
+    name: "synthwave-night",
+    header: ThemeColor::new(255, 0, 255),
+    accent: ThemeColor::new(3, 237, 249),
+    success: ThemeColor::new(131, 0, 255),
+    error: ThemeColor::new(255, 0, 64),
+    warning: ThemeColor::new(255, 255, 102),
+    info: ThemeColor::new(0, 128, 255),
+    muted: ThemeColor::new(60, 40, 90),
+    border: ThemeColor::new(80, 50, 120),
+    value: ThemeColor::new(230, 220, 255),
+    label: ThemeColor::new(255, 126, 219),
+    progress_bar: ThemeColor::new(131, 0, 255),
+};
+
+pub const SYNTHWAVE_SUNSET: Theme = Theme {
+    name: "synthwave-sunset",
+    header: ThemeColor::new(255, 126, 219),
+    accent: ThemeColor::new(255, 0, 64),
+    success: ThemeColor::new(255, 84, 66),
+    error: ThemeColor::new(255, 0, 64),
+    warning: ThemeColor::new(255, 255, 102),
+    info: ThemeColor::new(243, 231, 15),
+    muted: ThemeColor::new(120, 60, 80),
+    border: ThemeColor::new(140, 70, 90),
+    value: ThemeColor::new(255, 230, 220),
+    label: ThemeColor::new(255, 126, 219),
+    progress_bar: ThemeColor::new(255, 0, 255),
+};
+
+pub const NEON_CITY: Theme = Theme {
+    name: "neon-city",
+    header: ThemeColor::new(0, 255, 65),
+    accent: ThemeColor::new(0, 255, 255),
+    success: ThemeColor::new(0, 255, 65),
+    error: ThemeColor::new(255, 0, 65),
+    warning: ThemeColor::new(255, 255, 0),
+    info: ThemeColor::new(0, 200, 255),
+    muted: ThemeColor::new(80, 80, 80),
+    border: ThemeColor::new(0, 180, 180),
+    value: ThemeColor::new(200, 255, 200),
+    label: ThemeColor::new(0, 255, 255),
+    progress_bar: ThemeColor::new(0, 255, 65),
+};
+
+pub const DARK: Theme = Theme {
+    name: "dark",
+    header: ThemeColor::new(100, 200, 255),
+    accent: ThemeColor::new(120, 180, 255),
+    success: ThemeColor::new(80, 200, 120),
+    error: ThemeColor::new(255, 85, 85),
+    warning: ThemeColor::new(255, 200, 80),
+    info: ThemeColor::new(160, 180, 200),
+    muted: ThemeColor::new(100, 100, 120),
+    border: ThemeColor::new(80, 80, 100),
+    value: ThemeColor::new(220, 220, 230),
+    label: ThemeColor::new(140, 170, 210),
+    progress_bar: ThemeColor::new(100, 200, 255),
+};
+
+pub const LIGHT: Theme = Theme {
+    name: "light",
+    header: ThemeColor::new(0, 80, 160),
+    accent: ThemeColor::new(0, 100, 200),
+    success: ThemeColor::new(0, 120, 60),
+    error: ThemeColor::new(180, 30, 30),
+    warning: ThemeColor::new(160, 120, 0),
+    info: ThemeColor::new(80, 80, 100),
+    muted: ThemeColor::new(120, 120, 140),
+    border: ThemeColor::new(180, 180, 200),
+    value: ThemeColor::new(30, 30, 40),
+    label: ThemeColor::new(0, 80, 140),
+    progress_bar: ThemeColor::new(0, 80, 160),
+};
+
+pub const OCEAN: Theme = Theme {
+    name: "ocean",
+    header: ThemeColor::new(0, 200, 220),
+    accent: ThemeColor::new(0, 150, 200),
+    success: ThemeColor::new(0, 180, 140),
+    error: ThemeColor::new(220, 60, 80),
+    warning: ThemeColor::new(255, 200, 100),
+    info: ThemeColor::new(100, 180, 220),
+    muted: ThemeColor::new(60, 100, 130),
+    border: ThemeColor::new(50, 90, 120),
+    value: ThemeColor::new(200, 230, 255),
+    label: ThemeColor::new(0, 180, 200),
+    progress_bar: ThemeColor::new(0, 200, 220),
+};
+
+pub const FOREST: Theme = Theme {
+    name: "forest",
+    header: ThemeColor::new(120, 200, 80),
+    accent: ThemeColor::new(80, 160, 60),
+    success: ThemeColor::new(60, 180, 60),
+    error: ThemeColor::new(200, 60, 40),
+    warning: ThemeColor::new(200, 160, 40),
+    info: ThemeColor::new(140, 160, 100),
+    muted: ThemeColor::new(80, 100, 60),
+    border: ThemeColor::new(60, 80, 40),
+    value: ThemeColor::new(220, 230, 200),
+    label: ThemeColor::new(100, 160, 80),
+    progress_bar: ThemeColor::new(80, 160, 60),
+};
+
+pub const SUNSET: Theme = Theme {
+    name: "sunset",
+    header: ThemeColor::new(255, 140, 50),
+    accent: ThemeColor::new(255, 100, 80),
+    success: ThemeColor::new(200, 160, 60),
+    error: ThemeColor::new(220, 50, 50),
+    warning: ThemeColor::new(255, 200, 80),
+    info: ThemeColor::new(255, 160, 120),
+    muted: ThemeColor::new(140, 90, 70),
+    border: ThemeColor::new(120, 80, 60),
+    value: ThemeColor::new(255, 240, 220),
+    label: ThemeColor::new(255, 120, 80),
+    progress_bar: ThemeColor::new(255, 140, 50),
+};
+
+pub const MIDNIGHT: Theme = Theme {
+    name: "midnight",
+    header: ThemeColor::new(150, 180, 255),
+    accent: ThemeColor::new(100, 140, 255),
+    success: ThemeColor::new(120, 200, 180),
+    error: ThemeColor::new(255, 100, 120),
+    warning: ThemeColor::new(200, 200, 140),
+    info: ThemeColor::new(140, 160, 200),
+    muted: ThemeColor::new(70, 80, 120),
+    border: ThemeColor::new(60, 70, 110),
+    value: ThemeColor::new(200, 210, 240),
+    label: ThemeColor::new(130, 160, 220),
+    progress_bar: ThemeColor::new(100, 140, 255),
+};
+
+pub const RETRO: Theme = Theme {
+    name: "retro",
+    header: ThemeColor::new(255, 176, 0),
+    accent: ThemeColor::new(255, 200, 60),
+    success: ThemeColor::new(200, 255, 0),
+    error: ThemeColor::new(255, 100, 0),
+    warning: ThemeColor::new(255, 220, 100),
+    info: ThemeColor::new(200, 160, 0),
+    muted: ThemeColor::new(120, 90, 0),
+    border: ThemeColor::new(100, 75, 0),
+    value: ThemeColor::new(255, 220, 120),
+    label: ThemeColor::new(255, 190, 40),
+    progress_bar: ThemeColor::new(255, 176, 0),
+};
+
+pub const DRACULA: Theme = Theme {
+    name: "dracula",
+    header: ThemeColor::new(189, 147, 249),
+    accent: ThemeColor::new(255, 121, 198),
+    success: ThemeColor::new(80, 250, 123),
+    error: ThemeColor::new(255, 85, 85),
+    warning: ThemeColor::new(241, 250, 140),
+    info: ThemeColor::new(139, 233, 253),
+    muted: ThemeColor::new(98, 114, 164),
+    border: ThemeColor::new(68, 71, 90),
+    value: ThemeColor::new(248, 248, 242),
+    label: ThemeColor::new(189, 147, 249),
+    progress_bar: ThemeColor::new(255, 121, 198),
+};
+
+const ALL_THEMES: [&Theme; 12] = [
+    &SYNTHWAVE84,
+    &SYNTHWAVE_NIGHT,
+    &SYNTHWAVE_SUNSET,
+    &NEON_CITY,
+    &DARK,
+    &LIGHT,
+    &OCEAN,
+    &FOREST,
+    &SUNSET,
+    &MIDNIGHT,
+    &RETRO,
+    &DRACULA,
+];
+
+pub fn get_default_theme() -> &'static Theme {
+    &SYNTHWAVE84
+}
+
+pub fn get_theme(name: &str) -> &'static Theme {
+    let lower = name.to_lowercase();
+    ALL_THEMES
+        .iter()
+        .find(|t| t.name == lower)
+        .copied()
+        .unwrap_or(&SYNTHWAVE84)
+}
+
+pub fn load_from_config(cfg: &crate::config::Config) -> &'static Theme {
+    get_theme(&cfg.theme)
+}
+
+pub fn available_themes() -> Vec<&'static str> {
+    ALL_THEMES.iter().map(|t| t.name).collect()
+}
+
+pub fn style_header(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.header.to_color())
+}
+
+pub fn style_success(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.success.to_color())
+}
+
+pub fn style_error(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.error.to_color())
+}
+
+pub fn style_warning(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.warning.to_color())
+}
+
+pub fn style_info(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.info.to_color())
+}
+
+pub fn style_accent(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.accent.to_color())
+}
+
+pub fn style_muted(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.muted.to_color())
+}
+
+pub fn style_label(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.label.to_color())
+}
+
+pub fn style_value(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.value.to_color())
+}
+
+pub fn style_border(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.border.to_color())
+}
+
+pub fn style_bold_header(text: &str, theme: &Theme) -> ColoredString {
+    text.color(theme.header.to_color()).bold()
+}
+
+pub fn theme_preview(theme: &Theme) -> String {
+    let lines = vec![
+        format!(
+            "{}",
+            style_bold_header(&format!("═══ {} ═══", theme.name), theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("header:", theme),
+            style_header("Electric cyan text", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("accent:", theme),
+            style_accent("Highlighted text", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("success:", theme),
+            style_success("✔ Backup complete", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("error:", theme),
+            style_error("✖ Operation failed", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("warning:", theme),
+            style_warning("⚠ Low disk space", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("info:", theme),
+            style_info("i 3 backups found", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("muted:", theme),
+            style_muted("Secondary detail", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("value:", theme),
+            style_value("42 backups, 1.2 GB", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("border:", theme),
+            style_border("───────────────────", theme)
+        ),
+        format!(
+            "  {} {}",
+            style_label("progress:", theme),
+            style_border("███", theme)
+                .color(theme.progress_bar.to_color())
+        ),
+    ];
+    lines.join("\n")
+}
