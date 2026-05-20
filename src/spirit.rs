@@ -105,16 +105,21 @@ pub fn search_verses(cfg: &Config, query: &str, limit: usize) -> Result<Vec<Vers
 
     let pattern = format!("%{}%", query);
 
-    let mut stmt = conn.prepare(
-        "SELECT b.name, v.chapter, v.verse, v.text
+    let mut stmt = conn
+        .prepare(
+            "SELECT b.name, v.chapter, v.verse, v.text
          FROM verses v JOIN books b ON v.book_id = b.id
          WHERE v.text LIKE ?1
          ORDER BY v.book_id, v.chapter, v.verse
          LIMIT ?2",
-    ).context("Failed to prepare search query")?;
+        )
+        .context("Failed to prepare search query")?;
 
     let results: Vec<Verse> = stmt
-        .query_map([&pattern as &dyn rusqlite::types::ToSql, &(limit as i64)], row_to_verse)
+        .query_map(
+            [&pattern as &dyn rusqlite::types::ToSql, &(limit as i64)],
+            row_to_verse,
+        )
         .context("Failed to execute search query")?
         .collect::<rusqlite::Result<Vec<_>>>()
         .context("Failed to parse search results")?;
@@ -137,9 +142,7 @@ fn resolve_book_id(conn: &Connection, name: &str) -> Result<Option<i64>> {
         return Ok(result);
     }
 
-    let mut stmt = conn.prepare(
-        "SELECT id, name FROM books ORDER BY id",
-    )?;
+    let mut stmt = conn.prepare("SELECT id, name FROM books ORDER BY id")?;
 
     let books: Vec<(i64, String)> = stmt
         .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
@@ -153,33 +156,71 @@ fn resolve_book_id(conn: &Connection, name: &str) -> Result<Option<i64>> {
     }
 
     let abbreviations: &[(&str, &str)] = &[
-        ("gen", "Genesis"), ("ex", "Exodus"), ("lev", "Leviticus"),
-        ("num", "Numbers"), ("deut", "Deuteronomy"), ("josh", "Joshua"),
-        ("judg", "Judges"), ("rut", "Ruth"),
-        ("1sam", "1 Samuel"), ("2sam", "2 Samuel"),
-        ("1ki", "1 Kings"), ("2ki", "2 Kings"),
-        ("1ch", "1 Chronicles"), ("2ch", "2 Chronicles"),
-        ("ezr", "Ezra"), ("neh", "Nehemiah"), ("est", "Esther"),
-        ("ps", "Psalms"), ("prov", "Proverbs"), ("eccl", "Ecclesiastes"),
-        ("song", "Song of Solomon"), ("isa", "Isaiah"),
-        ("jer", "Jeremiah"), ("lam", "Lamentations"),
-        ("ezek", "Ezekiel"), ("dan", "Daniel"),
-        ("hos", "Hosea"), ("joel", "Joel"), ("amos", "Amos"),
-        ("obad", "Obadiah"), ("jon", "Jonah"), ("mic", "Micah"),
-        ("nah", "Nahum"), ("hab", "Habakkuk"), ("zep", "Zephaniah"),
-        ("hag", "Haggai"), ("zech", "Zechariah"), ("mal", "Malachi"),
-        ("matt", "Matthew"), ("mk", "Mark"), ("lk", "Luke"), ("jn", "John"),
-        ("acts", "Acts"), ("rom", "Romans"),
-        ("1cor", "1 Corinthians"), ("2cor", "2 Corinthians"),
-        ("gal", "Galatians"), ("eph", "Ephesians"),
-        ("phil", "Philippians"), ("col", "Colossians"),
-        ("1th", "1 Thessalonians"), ("2th", "2 Thessalonians"),
-        ("1tim", "1 Timothy"), ("2tim", "2 Timothy"),
-        ("titus", "Titus"), ("phm", "Philemon"),
-        ("heb", "Hebrews"), ("jas", "James"),
-        ("1pet", "1 Peter"), ("2pet", "2 Peter"),
-        ("1jn", "1 John"), ("2jn", "2 John"), ("3jn", "3 John"),
-        ("jude", "Jude"), ("rev", "Revelation"),
+        ("gen", "Genesis"),
+        ("ex", "Exodus"),
+        ("lev", "Leviticus"),
+        ("num", "Numbers"),
+        ("deut", "Deuteronomy"),
+        ("josh", "Joshua"),
+        ("judg", "Judges"),
+        ("rut", "Ruth"),
+        ("1sam", "1 Samuel"),
+        ("2sam", "2 Samuel"),
+        ("1ki", "1 Kings"),
+        ("2ki", "2 Kings"),
+        ("1ch", "1 Chronicles"),
+        ("2ch", "2 Chronicles"),
+        ("ezr", "Ezra"),
+        ("neh", "Nehemiah"),
+        ("est", "Esther"),
+        ("ps", "Psalms"),
+        ("prov", "Proverbs"),
+        ("eccl", "Ecclesiastes"),
+        ("song", "Song of Solomon"),
+        ("isa", "Isaiah"),
+        ("jer", "Jeremiah"),
+        ("lam", "Lamentations"),
+        ("ezek", "Ezekiel"),
+        ("dan", "Daniel"),
+        ("hos", "Hosea"),
+        ("joel", "Joel"),
+        ("amos", "Amos"),
+        ("obad", "Obadiah"),
+        ("jon", "Jonah"),
+        ("mic", "Micah"),
+        ("nah", "Nahum"),
+        ("hab", "Habakkuk"),
+        ("zep", "Zephaniah"),
+        ("hag", "Haggai"),
+        ("zech", "Zechariah"),
+        ("mal", "Malachi"),
+        ("matt", "Matthew"),
+        ("mk", "Mark"),
+        ("lk", "Luke"),
+        ("jn", "John"),
+        ("acts", "Acts"),
+        ("rom", "Romans"),
+        ("1cor", "1 Corinthians"),
+        ("2cor", "2 Corinthians"),
+        ("gal", "Galatians"),
+        ("eph", "Ephesians"),
+        ("phil", "Philippians"),
+        ("col", "Colossians"),
+        ("1th", "1 Thessalonians"),
+        ("2th", "2 Thessalonians"),
+        ("1tim", "1 Timothy"),
+        ("2tim", "2 Timothy"),
+        ("titus", "Titus"),
+        ("phm", "Philemon"),
+        ("heb", "Hebrews"),
+        ("jas", "James"),
+        ("1pet", "1 Peter"),
+        ("2pet", "2 Peter"),
+        ("1jn", "1 John"),
+        ("2jn", "2 John"),
+        ("3jn", "3 John"),
+        ("jude", "Jude"),
+        ("rev", "Revelation"),
     ];
 
     for (abbr, full_name) in abbreviations {
@@ -257,9 +298,8 @@ pub fn lookup_reference(
 pub fn parse_reference(input: &str) -> Option<(String, Option<u32>, Option<u32>)> {
     let trimmed = input.trim();
 
-    let re_with_verse = regex::Regex::new(
-        r"(?i)^\s*([\d]?\s*\w+(?:\s+\w+)?)\s+(\d+)\s*:\s*(\d+)\s*$"
-    ).ok()?;
+    let re_with_verse =
+        regex::Regex::new(r"(?i)^\s*([\d]?\s*\w+(?:\s+\w+)?)\s+(\d+)\s*:\s*(\d+)\s*$").ok()?;
 
     if let Some(caps) = re_with_verse.captures(trimmed) {
         let book = caps.get(1)?.as_str().trim().to_string();
@@ -268,9 +308,8 @@ pub fn parse_reference(input: &str) -> Option<(String, Option<u32>, Option<u32>)
         return Some((book, chapter, verse));
     }
 
-    let re_with_chapter = regex::Regex::new(
-        r"(?i)^\s*([\d]?\s*\w+(?:\s+\w+)?)\s+(\d+)\s*$"
-    ).ok()?;
+    let re_with_chapter =
+        regex::Regex::new(r"(?i)^\s*([\d]?\s*\w+(?:\s+\w+)?)\s+(\d+)\s*$").ok()?;
 
     if let Some(caps) = re_with_chapter.captures(trimmed) {
         let book = caps.get(1)?.as_str().trim().to_string();
@@ -278,9 +317,7 @@ pub fn parse_reference(input: &str) -> Option<(String, Option<u32>, Option<u32>)
         return Some((book, chapter, None));
     }
 
-    let re_book_only = regex::Regex::new(
-        r"(?i)^\s*([\d]?\s*\w+(?:\s+\w+)?)\s*$"
-    ).ok()?;
+    let re_book_only = regex::Regex::new(r"(?i)^\s*([\d]?\s*\w+(?:\s+\w+)?)\s*$").ok()?;
 
     if let Some(caps) = re_book_only.captures(trimmed) {
         let book = caps.get(1)?.as_str().trim().to_string();
@@ -309,7 +346,10 @@ pub fn format_verse_brief(verse: &Verse, cfg: &Config) -> String {
         crate::theme::style_accent(&verse.book, theme),
         crate::theme::style_value(&verse.chapter.to_string(), theme),
         crate::theme::style_value(&format!(":{}", verse.verse), theme),
-        crate::theme::style_muted(&format!(" {}", &verse.text.chars().take(60).collect::<String>()), theme),
+        crate::theme::style_muted(
+            &format!(" {}", &verse.text.chars().take(60).collect::<String>()),
+            theme
+        ),
     )
 }
 
@@ -397,11 +437,14 @@ mod tests {
         let cfg = test_config_with_bible_db(&tmp);
 
         let results = search_verses(&cfg, "For God so loved", 10)?;
-        assert!(!results.is_empty(), "Expected to find at least one result for 'For God so loved'");
-
-        let found = results.iter().any(|v|
-            v.book == "John" && v.chapter == 3 && v.verse == 16
+        assert!(
+            !results.is_empty(),
+            "Expected to find at least one result for 'For God so loved'"
         );
+
+        let found = results
+            .iter()
+            .any(|v| v.book == "John" && v.chapter == 3 && v.verse == 16);
         assert!(found, "Expected to find John 3:16 in search results");
 
         Ok(())

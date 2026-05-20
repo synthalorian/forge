@@ -184,7 +184,10 @@ fn word_reference(
     println!(
         "\n  {} Use {} to narrow results",
         crate::theme::style_muted("Tip:", theme),
-        crate::theme::style_value(&format!("forge word reference {} --chapter N --verse M", book), theme),
+        crate::theme::style_value(
+            &format!("forge word reference {} --chapter N --verse M", book),
+            theme
+        ),
     );
     println!();
 
@@ -236,10 +239,7 @@ fn reflect_history(cfg: &Config, theme: &crate::theme::Theme) -> Result<()> {
 
     for entry in &entries {
         let date_str = entry.created_at.format("%Y-%m-%d %H:%M").to_string();
-        let tag_display = entry
-            .tag
-            .as_deref()
-            .unwrap_or("");
+        let tag_display = entry.tag.as_deref().unwrap_or("");
         let tag_colored = if tag_display.is_empty() {
             String::new()
         } else {
@@ -288,7 +288,10 @@ fn reflect_read(cfg: &Config, theme: &crate::theme::Theme, id: i64) -> Result<()
     println!(
         "  {} {}",
         crate::theme::style_label("Date:", theme),
-        crate::theme::style_muted(&entry.created_at.format("%Y-%m-%d %H:%M UTC").to_string(), theme),
+        crate::theme::style_muted(
+            &entry.created_at.format("%Y-%m-%d %H:%M UTC").to_string(),
+            theme
+        ),
     );
     println!(
         "  {} {}",
@@ -306,10 +309,7 @@ fn reflect_read(cfg: &Config, theme: &crate::theme::Theme, id: i64) -> Result<()
 
     println!();
     for line in entry.content.lines() {
-        println!(
-            "    {}",
-            crate::theme::style_accent(line, theme),
-        );
+        println!("    {}", crate::theme::style_accent(line, theme),);
     }
     println!();
 
@@ -366,10 +366,16 @@ fn reflect_search(cfg: &Config, theme: &crate::theme::Theme, query: &str) -> Res
 
 fn sabbath_mode(theme: &crate::theme::Theme) -> Result<()> {
     let rest_verses = [
-        ("Matthew 11:28", "Come to me, all who labor and are heavy laden, and I will give you rest."),
+        (
+            "Matthew 11:28",
+            "Come to me, all who labor and are heavy laden, and I will give you rest.",
+        ),
         ("Psalm 46:10", "Be still, and know that I am God."),
         ("Exodus 20:8", "Remember the Sabbath day, to keep it holy."),
-        ("Isaiah 40:31", "But they who wait for the Lord shall renew their strength."),
+        (
+            "Isaiah 40:31",
+            "But they who wait for the Lord shall renew their strength.",
+        ),
     ];
 
     let idx = (chrono::Utc::now().timestamp() as usize) % rest_verses.len();

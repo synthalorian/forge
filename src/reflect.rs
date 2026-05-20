@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+type JournalRow = (i64, String, String, Vec<u8>, Vec<u8>, Option<String>, i64);
+
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
@@ -126,7 +128,7 @@ pub fn derive_or_create_key(cfg: &Config) -> Result<[u8; 32]> {
         let mut key = [0u8; 32];
         rand::rngs::OsRng.fill_bytes(&mut key);
 
-        fs::write(&path, &key)
+        fs::write(&path, key)
             .with_context(|| format!("Failed to write journal key to {}", path.display()))?;
 
         #[cfg(unix)]
@@ -146,7 +148,8 @@ pub fn derive_or_create_key(cfg: &Config) -> Result<[u8; 32]> {
 ///
 /// Returns `(ciphertext, 12-byte nonce)`.
 pub fn encrypt(key: &[u8; 32], plaintext: &str) -> Result<(Vec<u8>, [u8; 12])> {
-    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| anyhow::anyhow!("Invalid key: {}", e))?;
+    let cipher =
+        Aes256Gcm::new_from_slice(key).map_err(|e| anyhow::anyhow!("Invalid key: {}", e))?;
 
     let mut nonce_bytes = [0u8; 12];
     rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
@@ -163,7 +166,8 @@ pub fn encrypt(key: &[u8; 32], plaintext: &str) -> Result<(Vec<u8>, [u8; 12])> {
 ///
 /// Returns the original plaintext string.
 pub fn decrypt(key: &[u8; 32], ciphertext: &[u8], nonce: &[u8; 12]) -> Result<String> {
-    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| anyhow::anyhow!("Invalid key: {}", e))?;
+    let cipher =
+        Aes256Gcm::new_from_slice(key).map_err(|e| anyhow::anyhow!("Invalid key: {}", e))?;
 
     let nonce = Nonce::from_slice(nonce);
 
@@ -225,7 +229,15 @@ pub fn get_entry(cfg: &Config, id: i64) -> Result<Option<JournalEntry>> {
         .context("Failed to query journal entry")?;
 
     match result {
-        Some((id, created_at_str, updated_at_str, encrypted_content, nonce_blob, tag, word_count)) => {
+        Some((
+            id,
+            created_at_str,
+            updated_at_str,
+            encrypted_content,
+            nonce_blob,
+            tag,
+            word_count,
+        )) => {
             if nonce_blob.len() != 12 {
                 bail!("Invalid nonce length for entry {}", id);
             }
@@ -297,7 +309,7 @@ pub fn search_entries(cfg: &Config, query: &str) -> Result<Vec<JournalEntry>> {
         )
         .context("Failed to prepare search query")?;
 
-    let rows: Vec<(i64, String, String, Vec<u8>, Vec<u8>, Option<String>, i64)> = stmt
+    let rows: Vec<JournalRow> = stmt
         .query_map([], |row| {
             Ok((
                 row.get::<_, i64>(0)?,
@@ -426,8 +438,7 @@ mod tests {
         let id = add_entry(&cfg, "Today I am grateful for peace and quiet.")?;
         assert!(id > 0);
 
-        let entry = get_entry(&cfg, id)?
-            .expect("entry should exist");
+        let entry = get_entry(&cfg, id)?.expect("entry should exist");
         assert_eq!(entry.id, id);
         assert_eq!(entry.content, "Today I am grateful for peace and quiet.");
         assert_eq!(entry.word_count, 8);
