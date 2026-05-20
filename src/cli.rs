@@ -142,6 +142,8 @@ pub enum ThemeAction {
         #[arg(help = "Name of the theme to activate")]
         name: String,
     },
+    #[command(about = "Create a custom theme interactively")]
+    Create,
 }
 
 #[derive(Args)]

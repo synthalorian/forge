@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build Release Binary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release --bin forge
+
+      - name: Strip debug symbols
+        run: strip target/release/forge
+
+      - name: Package Hub
+        run: |
+          tar czf forge-hub.tar.gz \
+            --exclude='hub/log' \
+            --exclude='hub/tmp' \
+            --exclude='hub/storage' \
+            --exclude='hub/vendor' \
+            --exclude='hub/node_modules' \
+            hub/
+
+      - name: Compute checksums
+        run: |
+          sha256sum target/release/forge > forge.sha256
+          sha256sum forge-hub.tar.gz > forge-hub.tar.gz.sha256
+          sha256sum assets/forge-icon.png > forge-icon.png.sha256
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Forge ${{ github.ref_name }}
+          body: |
+            ## Forge ${{ github.ref_name }}
+
+            See [README](https://github.com/${{ github.repository }}) for install instructions.
+
+            ### Assets
+            - `forge` — Linux x86_64 binary (statically linked)
+            - `forge-hub.tar.gz` — Rails 8 web GUI bundle
+            - `forge-icon.png` — App icon for desktop integrations
+          files: |
+            target/release/forge
+            forge-hub.tar.gz
+            assets/forge-icon.png
+            forge.sha256
+            forge-hub.tar.gz.sha256
+            forge-icon.png.sha256
+          generate_release_notes: true

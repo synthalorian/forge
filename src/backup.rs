@@ -133,6 +133,7 @@ struct BackupInfo {
     tag_count: u32,
     total_chunks: u64,
     new_chunks: u64,
+    incremental: bool,
 }
 
 fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<BackupInfo> {
@@ -149,6 +150,13 @@ fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<Backu
         .to_str()
         .context("Repo name is not valid UTF-8")?
         .to_string();
+
+    // Check if an incremental backup is possible
+    let conn_check = crate::db::connect(cfg).ok();
+    let is_incremental = conn_check
+        .as_ref()
+        .map(|conn| crate::anvil::can_do_incremental(conn, &repo_name))
+        .unwrap_or(false);
 
     let repo_path_str = canonical
         .to_str()
@@ -220,7 +228,7 @@ fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<Backu
         branch_count,
         tag_count,
         commit_count,
-        backup_type: BackupType::Full,
+        backup_type: if is_incremental { BackupType::Incremental } else { BackupType::Full },
         created_at: snapshot.captured_at,
     };
     let backup_id =
@@ -247,6 +255,7 @@ fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<Backu
         tag_count,
         total_chunks: dedup_result.total_chunks,
         new_chunks: dedup_result.new_chunks,
+        incremental: is_incremental,
     })
 }
 
