@@ -16,7 +16,7 @@ pub struct BackupEntry {
     pub backup_type: BackupType,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BackupType {
     Full,
     Incremental,

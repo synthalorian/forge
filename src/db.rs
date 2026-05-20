@@ -138,7 +138,10 @@ pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
         println!(
             "{}",
             crate::theme::style_header(
-                &format!("{:<5} {:<25} {:<10} {:<6} {:<12} Created", "ID", "Repo", "Branches", "Tags", "Size"),
+                &format!(
+                    "{:<5} {:<25} {:<10} {:<6} {:<12} Created",
+                    "ID", "Repo", "Branches", "Tags", "Size"
+                ),
                 theme,
             )
         );
@@ -147,11 +150,17 @@ pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
             println!(
                 "{} {} {} {} {} {}",
                 crate::theme::style_value(&format!("{:<5}", entry.id), theme),
-                crate::theme::style_accent(&format!("{:<25}", truncate_str(&entry.repo_name, 25)), theme),
+                crate::theme::style_accent(
+                    &format!("{:<25}", truncate_str(&entry.repo_name, 25)),
+                    theme
+                ),
                 crate::theme::style_value(&format!("{:<10}", entry.branch_count), theme),
                 crate::theme::style_value(&format!("{:<6}", entry.tag_count), theme),
                 crate::theme::style_value(&format!("{:<12}", format_size(entry.size_bytes)), theme),
-                crate::theme::style_value(&entry.created_at.format("%Y-%m-%d %H:%M").to_string(), theme),
+                crate::theme::style_value(
+                    &entry.created_at.format("%Y-%m-%d %H:%M").to_string(),
+                    theme
+                ),
             );
         }
     }
@@ -191,7 +200,10 @@ pub fn show_status(cfg: &Config) -> Result<()> {
         })
         .context("Failed to count unique repos")?;
 
-    println!("{}", crate::theme::style_bold_header("Forge Backup Status", theme));
+    println!(
+        "{}",
+        crate::theme::style_bold_header("Forge Backup Status", theme)
+    );
     println!("{}", crate::theme::style_border(&"═".repeat(40), theme));
     println!(
         "{}  {}",
@@ -211,7 +223,10 @@ pub fn show_status(cfg: &Config) -> Result<()> {
 
     if unique_repos > 0 {
         println!();
-        println!("{}", crate::theme::style_header("Last backup per repository:", theme));
+        println!(
+            "{}",
+            crate::theme::style_header("Last backup per repository:", theme)
+        );
         println!("{}", crate::theme::style_border(&"-".repeat(60), theme));
 
         let mut stmt = conn
@@ -448,4 +463,285 @@ pub fn get_backup_chunk_hashes(conn: &Connection, backup_id: i64) -> Result<Vec<
         .collect::<rusqlite::Result<Vec<_>>>()
         .context("Failed to parse chunk hash rows")?;
     Ok(hashes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{Config, RetentionConfig};
+    use tempfile::TempDir;
+
+    fn test_config(tmp: &TempDir) -> Config {
+        Config {
+            archive_dir: tmp.path().join("archives"),
+            db_path: tmp.path().join("forge.db"),
+            default_compression: 3,
+            repo_paths: vec![],
+            retention: RetentionConfig {
+                keep_daily: 7,
+                keep_weekly: 4,
+                keep_monthly: 12,
+            },
+            theme: "synthwave84".to_string(),
+        }
+    }
+
+    fn sample_backup_entry() -> BackupEntry {
+        BackupEntry {
+            id: 0,
+            repo_path: "/tmp/test-repo".to_string(),
+            repo_name: "test-repo".to_string(),
+            archive_path: "/tmp/archive/test.manifest.json".to_string(),
+            sha256: "abc123def456".to_string(),
+            size_bytes: 1024,
+            branch_count: 2,
+            tag_count: 1,
+            commit_count: 42,
+            created_at: chrono::Utc::now(),
+            backup_type: BackupType::Full,
+        }
+    }
+
+    #[test]
+    fn connect_creates_schema() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        conn.query_row("SELECT COUNT(*) FROM backups", [], |row| {
+            row.get::<_, i64>(0)
+        })?;
+        conn.query_row("SELECT COUNT(*) FROM chunks", [], |row| {
+            row.get::<_, i64>(0)
+        })?;
+        conn.query_row("SELECT COUNT(*) FROM archive_chunks", [], |row| {
+            row.get::<_, i64>(0)
+        })?;
+        conn.query_row("SELECT COUNT(*) FROM schedules", [], |row| {
+            row.get::<_, i64>(0)
+        })?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn insert_and_get_backup_by_id() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        let entry = sample_backup_entry();
+        let id = insert_backup(&conn, &entry)?;
+        assert_eq!(id, 1);
+
+        let fetched = get_backup_by_id(&conn, "1")?.expect("backup 1");
+        assert_eq!(fetched.repo_name, "test-repo");
+        assert_eq!(fetched.repo_path, "/tmp/test-repo");
+        assert_eq!(fetched.branch_count, 2);
+        assert_eq!(fetched.tag_count, 1);
+        assert_eq!(fetched.commit_count, 42);
+        assert_eq!(fetched.size_bytes, 1024);
+        assert_eq!(fetched.backup_type, BackupType::Full);
+
+        Ok(())
+    }
+
+    #[test]
+    fn insert_incremental_backup() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        let mut entry = sample_backup_entry();
+        entry.backup_type = BackupType::Incremental;
+        insert_backup(&conn, &entry)?;
+
+        let fetched = get_backup_by_id(&conn, "1")?.expect("backup 1");
+        assert_eq!(fetched.backup_type, BackupType::Incremental);
+
+        Ok(())
+    }
+
+    #[test]
+    fn get_backup_by_name() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        let entry = sample_backup_entry();
+        insert_backup(&conn, &entry)?;
+
+        let fetched = get_backup_by_id(&conn, "test-repo")?.expect("by name");
+        assert_eq!(fetched.repo_name, "test-repo");
+
+        Ok(())
+    }
+
+    #[test]
+    fn get_nonexistent_backup_returns_none() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        assert!(get_backup_by_id(&conn, "999")?.is_none());
+        assert!(get_backup_by_id(&conn, "nonexistent")?.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn insert_and_check_chunk() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        assert!(!chunk_exists(&conn, "hash123")?);
+
+        insert_chunk(&conn, "hash123", 1000, 500)?;
+        assert!(chunk_exists(&conn, "hash123")?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn chunk_ref_count_increments_on_duplicate_insert() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        insert_chunk(&conn, "hash123", 1000, 500)?;
+        insert_chunk(&conn, "hash123", 1000, 500)?;
+
+        let ref_count: i64 = conn.query_row(
+            "SELECT ref_count FROM chunks WHERE hash = ?1",
+            ["hash123"],
+            |row| row.get(0),
+        )?;
+        assert_eq!(ref_count, 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn increment_and_decrement_chunk_ref() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        insert_chunk(&conn, "hash1", 100, 50)?;
+
+        increment_chunk_ref(&conn, "hash1")?;
+        let count: i64 = conn.query_row(
+            "SELECT ref_count FROM chunks WHERE hash = ?1",
+            ["hash1"],
+            |row| row.get(0),
+        )?;
+        assert_eq!(count, 2);
+
+        decrement_chunk_ref(&conn, "hash1")?;
+        let count: i64 = conn.query_row(
+            "SELECT ref_count FROM chunks WHERE hash = ?1",
+            ["hash1"],
+            |row| row.get(0),
+        )?;
+        assert_eq!(count, 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn link_and_get_backup_chunks() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        let backup_id = insert_backup(&conn, &sample_backup_entry())?;
+
+        insert_chunk(&conn, "hash_a", 100, 50)?;
+        insert_chunk(&conn, "hash_b", 200, 100)?;
+
+        link_backup_chunks(
+            &conn,
+            backup_id,
+            &["hash_a".to_string(), "hash_b".to_string()],
+        )?;
+
+        let hashes = get_backup_chunk_hashes(&conn, backup_id)?;
+        assert_eq!(hashes.len(), 2);
+        assert_eq!(hashes[0], "hash_a");
+        assert_eq!(hashes[1], "hash_b");
+
+        Ok(())
+    }
+
+    #[test]
+    fn schedule_crud() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        let schedule = ScheduleConfig {
+            id: 0,
+            cron_expression: "0 2 * * *".to_string(),
+            target_path: "/tmp/repo".to_string(),
+            enabled: true,
+            last_run: None,
+            created_at: chrono::Utc::now(),
+        };
+
+        let id = insert_schedule(&conn, &schedule)?;
+        assert_eq!(id, 1);
+
+        let schedules = list_schedules(&conn)?;
+        assert_eq!(schedules.len(), 1);
+        assert_eq!(schedules[0].cron_expression, "0 2 * * *");
+        assert_eq!(schedules[0].target_path, "/tmp/repo");
+        assert!(schedules[0].enabled);
+
+        delete_schedule(&conn, id)?;
+        assert!(list_schedules(&conn)?.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    fn delete_nonexistent_schedule_fails() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        assert!(delete_schedule(&conn, 999).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn multiple_schedules() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        let conn = connect(&cfg)?;
+
+        for expr in ["0 2 * * *", "0 3 * * *", "0 4 * * *"] {
+            insert_schedule(
+                &conn,
+                &ScheduleConfig {
+                    id: 0,
+                    cron_expression: expr.to_string(),
+                    target_path: "/tmp/repo".to_string(),
+                    enabled: true,
+                    last_run: None,
+                    created_at: chrono::Utc::now(),
+                },
+            )?;
+        }
+
+        let schedules = list_schedules(&conn)?;
+        assert_eq!(schedules.len(), 3);
+
+        delete_schedule(&conn, 2)?;
+        let remaining = list_schedules(&conn)?;
+        assert_eq!(remaining.len(), 2);
+
+        Ok(())
+    }
 }

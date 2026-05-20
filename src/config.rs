@@ -91,3 +91,58 @@ impl Config {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn default_config_values() {
+        let cfg = Config::default();
+        assert_eq!(cfg.theme, "synthwave84");
+        assert_eq!(cfg.default_compression, 3);
+        assert!(cfg.repo_paths.is_empty());
+        assert_eq!(cfg.retention.keep_daily, 7);
+        assert_eq!(cfg.retention.keep_weekly, 4);
+        assert_eq!(cfg.retention.keep_monthly, 12);
+    }
+
+    #[test]
+    fn toml_roundtrip() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let original = Config {
+            archive_dir: tmp.path().join("archives"),
+            db_path: tmp.path().join("forge.db"),
+            default_compression: 5,
+            repo_paths: vec!["/home/user/projects".to_string()],
+            retention: RetentionConfig {
+                keep_daily: 14,
+                keep_weekly: 8,
+                keep_monthly: 24,
+            },
+            theme: "dracula".to_string(),
+        };
+
+        let toml_str = toml::to_string_pretty(&original).context("serialize")?;
+        let parsed: Config = toml::from_str(&toml_str).context("deserialize")?;
+
+        assert_eq!(parsed.archive_dir, original.archive_dir);
+        assert_eq!(parsed.db_path, original.db_path);
+        assert_eq!(parsed.default_compression, 5);
+        assert_eq!(parsed.repo_paths, vec!["/home/user/projects"]);
+        assert_eq!(parsed.retention.keep_daily, 14);
+        assert_eq!(parsed.retention.keep_weekly, 8);
+        assert_eq!(parsed.retention.keep_monthly, 24);
+        assert_eq!(parsed.theme, "dracula");
+
+        Ok(())
+    }
+
+    #[test]
+    fn config_path_is_under_config_dir() {
+        let path = Config::config_path();
+        assert!(path.to_string_lossy().contains("forge"));
+        assert!(path.to_string_lossy().ends_with("config.toml"));
+    }
+}

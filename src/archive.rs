@@ -352,3 +352,169 @@ pub fn extract_dedup_archive(cfg: &Config, manifest_path: &str, target_dir: &str
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{Config, RetentionConfig};
+    use anyhow::Result;
+    use tempfile::TempDir;
+
+    fn test_config(tmp: &TempDir) -> Config {
+        Config {
+            archive_dir: tmp.path().join("archives"),
+            db_path: tmp.path().join("forge.db"),
+            default_compression: 3,
+            repo_paths: vec![],
+            retention: RetentionConfig {
+                keep_daily: 7,
+                keep_weekly: 4,
+                keep_monthly: 12,
+            },
+            theme: "synthwave84".to_string(),
+        }
+    }
+
+    fn create_test_repo(tmp: &TempDir) -> String {
+        let dir = tmp.path().join("testrepo.git");
+        fs::create_dir_all(&dir).expect("create dir");
+        fs::write(dir.join("HEAD"), "ref: refs/heads/main\n").expect("HEAD");
+        fs::create_dir_all(dir.join("objects/pack")).expect("objects/pack");
+        fs::create_dir_all(dir.join("refs/heads")).expect("refs/heads");
+        fs::write(dir.join("refs/heads/main"), "abc123def456\n").expect("ref");
+        fs::write(
+            dir.join("config"),
+            "[core]\n\trepositoryformatversion = 0\n",
+        )
+        .expect("config");
+        dir.to_str().expect("path").to_string()
+    }
+
+    #[test]
+    fn create_and_verify_archive() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        fs::create_dir_all(&cfg.archive_dir)?;
+
+        let repo_path = create_test_repo(&tmp);
+        let (archive_path, sha256) = create_archive(&cfg, &repo_path, 3)?;
+
+        assert!(Path::new(&archive_path).exists());
+        assert!(archive_path.ends_with(".tar.zst"));
+        assert!(!sha256.is_empty());
+        assert!(verify_archive(&archive_path, &sha256)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn verify_rejects_wrong_hash() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        fs::create_dir_all(&cfg.archive_dir)?;
+
+        let repo_path = create_test_repo(&tmp);
+        let (archive_path, _) = create_archive(&cfg, &repo_path, 3)?;
+
+        assert!(!verify_archive(
+            &archive_path,
+            "0000000000000000000000000000000000000000000000000000000000000000"
+        )?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn extract_archive_roundtrip() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        fs::create_dir_all(&cfg.archive_dir)?;
+
+        let repo_path = create_test_repo(&tmp);
+        let (archive_path, sha256) = create_archive(&cfg, &repo_path, 3)?;
+        assert!(verify_archive(&archive_path, &sha256)?);
+
+        let extract_dir = tmp.path().join("extracted");
+        extract_archive(&archive_path, extract_dir.to_str().expect("path"))?;
+
+        let extracted = extract_dir.join("testrepo.git");
+        assert!(extracted.exists());
+        assert_eq!(
+            fs::read_to_string(extracted.join("HEAD"))?,
+            "ref: refs/heads/main\n"
+        );
+        assert!(extracted.join("objects/pack").exists());
+        assert!(extracted.join("refs/heads/main").exists());
+
+        Ok(())
+    }
+
+    #[test]
+    fn dedup_archive_roundtrip() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        fs::create_dir_all(&cfg.archive_dir)?;
+
+        let repo_path = create_test_repo(&tmp);
+        let result = create_dedup_archive(&cfg, &repo_path, 3)?;
+
+        assert!(result.total_chunks > 0);
+        assert!(result.new_chunks > 0);
+        assert!(!result.chunk_hashes.is_empty());
+        assert!(result.manifest_path.ends_with(".manifest.json"));
+        assert!(Path::new(&result.manifest_path).exists());
+
+        let extract_dir = tmp.path().join("dedup_extracted");
+        extract_dedup_archive(
+            &cfg,
+            &result.manifest_path,
+            extract_dir.to_str().expect("path"),
+        )?;
+
+        let extracted = extract_dir.join("testrepo.git");
+        assert!(extracted.exists());
+        assert!(extracted.join("HEAD").exists());
+        assert_eq!(
+            fs::read_to_string(extracted.join("HEAD"))?,
+            "ref: refs/heads/main\n"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn dedup_deduplicates_identical_data() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        fs::create_dir_all(&cfg.archive_dir)?;
+
+        let repo_path = create_test_repo(&tmp);
+
+        let first = create_dedup_archive(&cfg, &repo_path, 3)?;
+        let second = create_dedup_archive(&cfg, &repo_path, 3)?;
+
+        assert!(first.new_chunks > 0);
+        assert_eq!(second.new_chunks, 0);
+        assert_eq!(first.chunk_hashes, second.chunk_hashes);
+
+        Ok(())
+    }
+
+    #[test]
+    fn create_archive_with_high_compression() -> Result<()> {
+        let tmp = TempDir::new()?;
+        let cfg = test_config(&tmp);
+        fs::create_dir_all(&cfg.archive_dir)?;
+
+        let repo_path = create_test_repo(&tmp);
+        let (archive_path, sha256) = create_archive(&cfg, &repo_path, 22)?;
+
+        assert!(verify_archive(&archive_path, &sha256)?);
+
+        let extract_dir = tmp.path().join("extracted_hc");
+        extract_archive(&archive_path, extract_dir.to_str().expect("path"))?;
+        assert!(extract_dir.join("testrepo.git").exists());
+
+        Ok(())
+    }
+}

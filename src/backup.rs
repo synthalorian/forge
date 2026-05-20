@@ -236,8 +236,13 @@ fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<Backu
 
     // Insert chunk records into DB before linking (satisfies FK constraint)
     for chunk in &dedup_result.chunk_details {
-        crate::db::insert_chunk(&conn, &chunk.hash, chunk.original_size, chunk.compressed_size)
-            .with_context(|| format!("Failed to insert chunk {} into database", chunk.hash))?;
+        crate::db::insert_chunk(
+            &conn,
+            &chunk.hash,
+            chunk.original_size,
+            chunk.compressed_size,
+        )
+        .with_context(|| format!("Failed to insert chunk {} into database", chunk.hash))?;
     }
 
     crate::db::link_backup_chunks(&conn, backup_id, &dedup_result.chunk_hashes)
