@@ -1,0 +1,22 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# Cargo lock (for binary crates, lockfile is optional)
+# Uncomment if you want to exclude it for a library:
+# Cargo.lock
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# forge data (local only)
+*.tar.zst
+*.db
