@@ -70,7 +70,7 @@ fn cli_shows_help() {
         .arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Local git backup"));
+        .stdout(predicate::str::contains("Craft Your Digital Future"));
 }
 
 #[test]
