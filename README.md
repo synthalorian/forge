@@ -1,80 +1,68 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/forge-icon.png">
-  <img src="assets/forge-icon.png" alt="Forge" width="600">
+  <img src="assets/forge-icon.png" alt="Forge" width="400">
 </picture>
 
 # Forge
 
-**Craft Your Digital Future — from the terminal.**
+**Craft Your Digital Future.**
 
 The blacksmith was the cornerstone of every civilization. They built the tools that built everything else. The sword, the plow, the cathedral — all born at the forge.
 
 Forge is that for the digital age.
 
-A CLI platform where human creativity meets artificial intelligence. Where you don't just store code — you craft your entire digital life. Git backups. AI orchestration. Scripture. System management. Creative tools. All connected. All local. All yours.
+A CLI platform and web dashboard where human creativity meets artificial intelligence. Where you don't just store code — you craft your entire digital life. Git backups. AI orchestration. Scripture. System management. Creative tools. All connected. All local. All yours.
 
 **One forge to shape them.**
 
 ---
 
-## Features
+## 📦 What's Inside
 
-### ✅ Core — The Anvil (Phase 1 — Done)
-- **Git backup engine** — Full bare clone with zstd compression and SHA-256 content dedup
-- **Restore engine** — Extract from archive, optional ref checkout, dry-run
-- **SQLite metadata** — Instant querying of backups, schedules, archives, chunks
-- **Cron scheduler** — Set-and-forget automated backups via crontab
-- **ChunkStore** — Content-addressable 4MB blocks, dedup across all projects
-- **12 built-in themes** — synthwave84, dark, ocean, forest, sunset, midnight, retro, dracula and more
-- **Theme engine** — True color, 12 color slots, live preview, set as default
-- **Streaming archive pipeline** — tar → zstd → SHA-256, no temp files
+| Component | Description | Language | Status |
+|-----------|-------------|----------|--------|
+| **Forge CLI** | Terminal workshop — backup, restore, scripture, themes, agents | Rust | ✅ Active |
+| **Forge Hub** | Visual command center — web GUI with synthwave84 theme | Ruby on Rails 8 | ✅ Active |
 
-### 🔮 Spirit — The Flame (Phase 2 — In Progress)
-- **`forge word`** — Daily scripture, verse search, passage reference lookup
-- **`forge reflect`** — Encrypted prayer journal with AES-256-GCM
-- **`forge rest`** — Sabbath mode: shut down all agents and processes
-- Bundled KJV Bible as SQLite — zero network dependency
-
-### 🧠 Mind — The Bellows (Phase 2 — Planned)
-- **`forge breathe`** — Agent status dashboard (Hermes, llama-swap, OpenCode)
-- **`forge strike <task>`** — Route tasks to best available AI agent
-- **`forge breathe models`** — List local + cloud models
-- **`forge breathe vault`** — Credential management (OAuth, API keys)
-- **`forge breathe prompts`** — TOML-based prompt library CRUD
-- Session persistence in SQLite
-
-### 🔧 System — The Tongs (Phase 2 — Planned)
-- **`forge grip`** — System dashboard (CPU, memory, disk, GPU)
-- **`forge grip dotfiles`** — Version and restore dotfiles
-- **`forge grip services`** — Running service monitor
-- **`forge grip diagnose`** — System health check
-- **`forge theme create`** — Interactive theme builder
-- **`forge theme export`** — Export to Alacritty, Kitty, Ghostty formats
-
-### 🎨 Create — The Crucible (Phase 3 — Vision)
-- **`forge melt chords`** — Chord progressions and music theory helpers
-- **`forge melt image`** — Bridge to image generation
-- **`forge melt diagram`** — ASCII and SVG architecture diagrams
-- **`forge melt palette`** — Color palette generation (from scratch or from images)
-- **`forge melt markdown`** — Markdown authoring with preview
-
-### 🌉 Connect — The Bridge (Phase 3 — Vision)
-- **`forge bridge`** — Check all connection statuses
-- **`forge bridge hooks`** — Webhook endpoint management
-- **`forge bridge notify`** — Notification hub (Telegram, Discord, desktop)
-- **`forge bridge sync`** — Cross-platform task synchronization
-- **`forge bridge calendar`** — Calendar integration
+```
+forge/
+├── src/              → Forge CLI (Rust binary)
+├── hub/              → Forge Hub (Rails 8 web app)
+├── assets/           → App icon, branding
+├── Cargo.toml        → CLI build config
+└── hub/Gemfile       → Hub dependencies
+```
 
 ---
 
-## Quick Start
+## 🔨 Forge CLI
+
+The terminal workshop. Everything starts here.
+
+### The Six Pillars
+
+| Pillar | Command | Purpose | Status |
+|--------|---------|---------|--------|
+| **Anvil** | `forge anvil` | Backup & restore management | ✅ Done |
+| **Bellows** | `forge breathe` | AI agent orchestration | 🚧 Planned |
+| **Flame** | `forge word` | Scripture & study | 🚧 In Progress |
+| **Tongs** | `forge grip` | System management | 📋 Planned |
+| **Crucible** | `forge melt` | Creative tools | 📋 Planned |
+| **Bridge** | `forge bridge` | Connections & integrations | 📋 Planned |
+
+### Install from Source
+
+**Prerequisites:** Rust 1.75+ (stable), Git, a C compiler (for libgit2, zstd)
 
 ```bash
-# Install from source
 git clone https://github.com/synthalorian/forge.git
 cd forge
 cargo install --path .
+```
 
+### Quick Start
+
+```bash
 # Initialize
 forge init
 
@@ -88,15 +76,7 @@ forge list
 forge theme set synthwave84
 ```
 
-### Prerequisites
-
-- **Rust 1.75+** (stable)
-- **Git** (for backup engine)
-- **C compiler** (for native dependencies: libgit2, zstd)
-
----
-
-## Command Reference
+### Command Reference
 
 ```
 forge                              Dashboard — what's happening right now
@@ -104,10 +84,10 @@ forge init                         First-time setup
 forge status                       System & backup health overview
 
 # The Workshop Verbs
-forge heat                         Spin up AI agents
-forge strike <task>                Execute task via best available agent
 forge quench [path]                Backup git repos
 forge restore <id>                 Restore from backup
+forge heat                         Spin up AI agents
+forge strike <task>                Execute task via best available agent
 forge temper                       Review recent work, suggest improvements
 forge anneal                       Enter deep work mode (do not disturb)
 forge alloy <sources>              Merge outputs from multiple agents
@@ -115,25 +95,48 @@ forge cast                         Deploy current project
 forge grind                        Run linters, tests, quality checks
 forge polish                       Format and document
 
-# The Six Pillars
-forge anvil <subcommand>           Code & project management
-forge breathe <subcommand>         AI agent harness
-forge word <subcommand>            Scripture & study
-forge reflect <subcommand>         Prayer journal
-forge grip <subcommand>            System management
-forge melt <subcommand>            Creative tools
-forge bridge <subcommand>          Connections & integrations
+# Scripture & Faith
+forge word                         Daily scripture
+forge word search <query>          Search verses
+forge word ref <passage>           Look up a passage
+forge reflect                      Prayer journal (AES-256-GCM encrypted)
+forge rest                         Sabbath mode — shut it all down
+
+# System & Creative
+forge grip                         System dashboard (CPU, memory, disk, GPU)
+forge melt chords                  Chord progressions and music theory
+forge melt palette                 Color palette generation
+forge melt diagram                 ASCII and SVG architecture diagrams
 
 # Personalization
-forge theme list                   Browse themes
+forge theme list                   Browse 12 built-in themes
 forge theme preview <name>         See a theme in action
 forge theme set <name>             Apply a theme
-forge theme create                 Build your own theme
+forge theme create                 Build your own theme (TOML)
 ```
 
----
+### Built-in Themes
 
-## Architecture
+12 themes, each with 12 color slots. Built for terminals that speak true color.
+
+| Theme | Description |
+|-------|-------------|
+| `synthwave84` | Neon purple on deep black — the default 🔮 |
+| `synthwave-night` | Magenta and cyan in darkness |
+| `synthwave-sunset` | Pink and orange horizon |
+| `neon-city` | Electric blue and hot pink |
+| `dark` | Clean monochrome for the purist |
+| `light` | Bright and readable |
+| `ocean` | Deep blues and seafoam |
+| `forest` | Greens and earth tones |
+| `sunset` | Warm oranges and purples |
+| `midnight` | Dark navy with silver accents |
+| `retro` | Amber phosphor CRT green |
+| `dracula` | Purple and green classic |
+
+Create your own with `forge theme create` — it's just a TOML file with 12 hex colors.
+
+### Architecture
 
 ```
 ~/.forge/
@@ -158,80 +161,79 @@ Each backup produces a `.tar.zst` file containing a bare git clone of the reposi
 
 ### Content Deduplication
 
-The ChunkStore splits data into 4MB blocks, SHA-256 hashes each one, compresses with zstd, and stores them in a sharded content-addressable layout (`chunks/ab/cdef...zst`). New backups only store chunks they haven't seen before. Across all your projects, this means massive space savings — identical dependencies, assets, and boilerplate are stored once.
+The ChunkStore splits data into 4MB blocks, SHA-256 hashes each one, compresses with zstd, and stores them in a sharded content-addressable layout (`chunks/ab/cdef...zst`). New backups only store chunks they haven't seen before. Across all your projects, identical dependencies, assets, and boilerplate are stored once.
 
 ---
 
-## Built-in Themes
+## 🖥️ Forge Hub
 
-Forge comes with 12 themes, each with 12 color slots. Built for terminals that speak true color.
+The visual command center. A Rails 8 web GUI that sits on top of Forge CLI, giving you a synthwave-styled dashboard for your forge infrastructure.
 
-| Theme | Description |
-|-------|-------------|
-| `synthwave84` | Neon cyan on deep purple — the default |
-| `synthwave-night` | Magenta and cyan in darkness |
-| `synthwave-sunset` | Pink and orange horizon |
-| `neon-city` | Electric blue and hot pink |
-| `dark` | Clean monochrome for the purist |
-| `light` | Bright and readable |
-| `ocean` | Deep blues and seafoam |
-| `forest` | Greens and earth tones |
-| `sunset` | Warm oranges and purples |
-| `midnight` | Dark navy with silver accents |
-| `retro` | Amber phosphor CRT green |
-| `dracula` | Purple and green classic |
+### Features
 
-Create your own with `forge theme create` — it's just a TOML file with 12 hex colors.
+- **Dashboard** — At-a-glance stats: backup count, repo count, storage used, active schedules
+- **Backup Browser** — Browse all backups, see sizes, commit counts, timestamps
+- **Pillar Navigation** — Visual access to all six pillars (Anvil, Bellows, Flame, Tongs, Crucible, Bridge)
+- **Synthwave84 Theme** — Deep purple palette with neon accents, CRT scanlines, horizon glow
+- **Theme Switcher** — Toggle between Synthwave84 Midnight, Ocean, and Light variants
+- **Glass Morphism UI** — Backdrop blur, translucent panels, hover glow effects
+- **Responsive** — Works on desktop and tablet
+
+### Install & Run
+
+**Prerequisites:** Ruby 3.2+, Bundler, Rails 8.1+, Forge CLI installed and initialized
+
+```bash
+# From the repo root
+cd hub
+
+# Install dependencies
+bundle install
+
+# Set up the database
+bin/rails db:create db:migrate
+
+# Build Tailwind CSS
+bin/rails tailwindcss:build
+
+# Start the server
+bin/rails server
+
+# Open in browser
+# → http://localhost:3000
+```
+
+### Hub Configuration
+
+The Hub reads from the same `~/.forge/` directory as the CLI. No separate configuration needed — it shares the SQLite databases, archive store, and theme settings.
+
+### Development
+
+```bash
+# Run with hot-reload (Tailwind + Stimulus)
+bin/dev
+
+# Run tests
+bin/rails test
+
+# Rebuild Tailwind after theme changes
+bin/rails tailwindcss:build
+```
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Ruby on Rails 8.1 |
+| Frontend | Tailwind CSS v4 + Stimulus.js |
+| Database | SQLite (shared with CLI) |
+| Asset Pipeline | Propshaft |
+| Web Server | Puma |
+| Theme | Synthwave84 (Omarchy-aligned purple palette) |
 
 ---
 
-## Development Status
-
-### Phase 1 — Foundation ✓
-
-| Module | Status |
-|--------|--------|
-| CLI framework (clap) | ✅ Done |
-| Configuration (TOML + XDG) | ✅ Done |
-| Data models & errors | ✅ Done |
-| SQLite database (backups, schedules, chunks, archive_chunks) | ✅ Done |
-| Backup engine (bare git clone, streaming tar) | ✅ Done |
-| Archive storage (zstd compression, HashingWriter) | ✅ Done |
-| Restore engine (extract, ref checkout, dry-run) | ✅ Done |
-| Content deduplication (ChunkStore, SHA-256, sharded) | ✅ Done |
-| Theme engine (12 themes × 12 colors, live preview) | ✅ Done |
-| Cron scheduler (crontab generation, validation) | ✅ Done |
-| Spirit: forge word, forge reflect, forge rest | 🚧 In Progress |
-
-### Phase 2 — Expansion
-
-| Module | Status |
-|--------|--------|
-| AI agent harness (`forge breathe`) | 📋 Planned |
-| Multi-agent orchestration (`forge strike`) | 📋 Planned |
-| Credential vault | 📋 Planned |
-| Prompt library | 📋 Planned |
-| Project scaffolding | 📋 Planned |
-| Scripture search & reference | 🚧 In Progress |
-| Encrypted prayer journal | 🚧 In Progress |
-| Sabbath mode | 🚧 In Progress |
-| Dotfile management | 📋 Planned |
-| System diagnostics | 📋 Planned |
-
-### Phase 3 — Vision
-
-| Module | Status |
-|--------|--------|
-| Creative tools (music, image, diagrams) | 📋 Planned |
-| Notification hub | 📋 Planned |
-| Webhook management | 📋 Planned |
-| API gateway | 📋 Planned |
-| Calendar integration | 📋 Planned |
-| Cross-platform sync | 📋 Planned |
-
----
-
-## Configuration
+## ⚙️ Configuration
 
 Default config at `~/.forge/config.toml`:
 
@@ -270,6 +272,73 @@ webhooks = []
 
 ---
 
+## 🚀 Releases
+
+Each release ships:
+
+| Asset | Description |
+|-------|-------------|
+| `forge` | Linux x86_64 binary (statically linked) |
+| `forge-hub.tar.gz` | Rails app bundle (hub/ directory) |
+| `forge-icon.png` | App icon for desktop integrations |
+
+Download the latest from the [Releases page](https://github.com/synthalorian/forge/releases).
+
+```bash
+# Install CLI from release binary
+curl -sL https://github.com/synthalorian/forge/releases/latest/download/forge -o ~/.local/bin/forge
+chmod +x ~/.local/bin/forge
+forge init
+```
+
+---
+
+## 🗺️ Roadmap
+
+### Phase 1 — Foundation ✅
+
+| Module | Status |
+|--------|--------|
+| CLI framework (clap) | ✅ Done |
+| Configuration (TOML + XDG) | ✅ Done |
+| Data models & errors | ✅ Done |
+| SQLite database | ✅ Done |
+| Backup engine (bare git clone, streaming tar) | ✅ Done |
+| Archive storage (zstd compression) | ✅ Done |
+| Restore engine (extract, ref checkout, dry-run) | ✅ Done |
+| Content deduplication (ChunkStore, SHA-256) | ✅ Done |
+| Theme engine (12 themes × 12 colors) | ✅ Done |
+| Cron scheduler | ✅ Done |
+| Forge Hub — Rails 8 web GUI | ✅ Done |
+
+### Phase 2 — Expansion
+
+| Module | Status |
+|--------|--------|
+| Scripture search & reference | 🚧 In Progress |
+| Encrypted prayer journal | 🚧 In Progress |
+| Sabbath mode | 🚧 In Progress |
+| AI agent harness (`forge breathe`) | 📋 Planned |
+| Multi-agent orchestration (`forge strike`) | 📋 Planned |
+| Credential vault | 📋 Planned |
+| Prompt library | 📋 Planned |
+| System diagnostics | 📋 Planned |
+| Hub — real-time backup progress | 📋 Planned |
+| Hub — agent status dashboard | 📋 Planned |
+
+### Phase 3 — Vision
+
+| Module | Status |
+|--------|--------|
+| Creative tools (music, image, diagrams) | 📋 Planned |
+| Notification hub | 📋 Planned |
+| Webhook management | 📋 Planned |
+| API gateway | 📋 Planned |
+| Calendar integration | 📋 Planned |
+| Cross-platform sync | 📋 Planned |
+
+---
+
 ## Technical Decisions
 
 1. **Everything is local first.** No cloud required. Network is optional enhancement.
@@ -279,6 +348,7 @@ webhooks = []
 5. **Bridge, don't compete.** Forge integrates with Hermes, Omarchy, llama-swap — it doesn't replace them.
 6. **Encryption for private data.** Prayer journal, credentials — AES-256-GCM, local keys.
 7. **Offline capable.** Scripture bundled. Backups local. Agents optional.
+8. **One repo, two surfaces.** CLI for speed. Hub for visibility. Same data, same forge.
 
 ---
 
