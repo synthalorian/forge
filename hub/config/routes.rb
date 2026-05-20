@@ -25,7 +25,11 @@ Rails.application.routes.draw do
   get "/bellows" => "bellows#index"
   get "/flame" => "flame#index"
   get "/tongs" => "tongs#index"
+  # Crucible — creative tools (forge melt bridge)
   get "/crucible" => "crucible#index"
+  post "/crucible/chords" => "crucible#chords"
+  post "/crucible/palette" => "crucible#palette"
+  post "/crucible/diagram" => "crucible#diagram"
   get "/bridge" => "bridge#index"
 
   root "dashboard#show"
