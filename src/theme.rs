@@ -353,9 +353,116 @@ pub fn theme_preview(theme: &Theme) -> String {
         format!(
             "  {} {}",
             style_label("progress:", theme),
-            style_border("███", theme)
-                .color(theme.progress_bar.to_color())
+            style_border("███", theme).color(theme.progress_bar.to_color())
         ),
     ];
     lines.join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{Config, RetentionConfig};
+
+    #[test]
+    fn all_twelve_themes_available() {
+        let themes = available_themes();
+        assert_eq!(themes.len(), 12);
+    }
+
+    #[test]
+    fn expected_theme_names_present() {
+        let themes = available_themes();
+        let expected = [
+            "synthwave84",
+            "synthwave-night",
+            "synthwave-sunset",
+            "neon-city",
+            "dark",
+            "light",
+            "ocean",
+            "forest",
+            "sunset",
+            "midnight",
+            "retro",
+            "dracula",
+        ];
+        for name in &expected {
+            assert!(themes.contains(name), "missing theme: {name}");
+        }
+    }
+
+    #[test]
+    fn get_synthwave84_by_name() {
+        let theme = get_theme("synthwave84");
+        assert_eq!(theme.name, "synthwave84");
+    }
+
+    #[test]
+    fn get_theme_case_insensitive() {
+        assert_eq!(get_theme("SYNTHWAVE84").name, "synthwave84");
+        assert_eq!(get_theme("Dracula").name, "dracula");
+        assert_eq!(get_theme("NEON-CITY").name, "neon-city");
+    }
+
+    #[test]
+    fn unknown_theme_falls_back_to_default() {
+        let theme = get_theme("nonexistent");
+        assert_eq!(theme.name, "synthwave84");
+    }
+
+    #[test]
+    fn default_theme_is_synthwave84() {
+        assert_eq!(super::get_default_theme().name, "synthwave84");
+    }
+
+    #[test]
+    fn load_from_config_with_custom_theme() {
+        let cfg = Config {
+            archive_dir: std::path::PathBuf::from("/tmp/test"),
+            db_path: std::path::PathBuf::from("/tmp/test.db"),
+            default_compression: 3,
+            repo_paths: vec![],
+            retention: RetentionConfig {
+                keep_daily: 7,
+                keep_weekly: 4,
+                keep_monthly: 12,
+            },
+            theme: "dracula".to_string(),
+        };
+        assert_eq!(load_from_config(&cfg).name, "dracula");
+    }
+
+    #[test]
+    fn style_functions_produce_output() {
+        let theme = get_theme("synthwave84");
+
+        assert_eq!(style_header("Header", theme).to_string(), "Header");
+        assert_eq!(style_success("OK", theme).to_string(), "OK");
+        assert_eq!(style_error("FAIL", theme).to_string(), "FAIL");
+        assert_eq!(style_warning("WARN", theme).to_string(), "WARN");
+        assert_eq!(style_info("INFO", theme).to_string(), "INFO");
+        assert_eq!(style_accent("Accent", theme).to_string(), "Accent");
+        assert_eq!(style_muted("muted", theme).to_string(), "muted");
+        assert_eq!(style_label("label:", theme).to_string(), "label:");
+        assert_eq!(style_value("42", theme).to_string(), "42");
+        assert_eq!(style_border("---", theme).to_string(), "---");
+        assert_eq!(style_bold_header("BOLD", theme).to_string(), "BOLD");
+    }
+
+    #[test]
+    fn theme_preview_not_empty() {
+        let preview = theme_preview(get_theme("synthwave84"));
+        assert!(!preview.is_empty());
+        assert!(preview.contains("synthwave84"));
+    }
+
+    #[test]
+    fn each_theme_has_unique_name() {
+        let themes = available_themes();
+        let mut seen = std::collections::HashSet::new();
+        for name in &themes {
+            assert!(seen.insert(*name), "duplicate theme: {name}");
+        }
+    }
 }

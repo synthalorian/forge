@@ -38,7 +38,10 @@ fn regenerate_crontab(conn: &Connection, theme: &crate::theme::Theme) -> Result<
                 format!("Failed to remove crontab file {}", crontab_path.display())
             })?;
         }
-        println!("{}", crate::theme::style_muted("No schedules remaining — crontab file removed.", theme));
+        println!(
+            "{}",
+            crate::theme::style_muted("No schedules remaining — crontab file removed.", theme)
+        );
         return Ok(());
     }
 
@@ -126,7 +129,7 @@ pub fn run(cfg: &Config, args: &ScheduleArgs) -> Result<()> {
             println!(
                 "{} {}",
                 crate::theme::style_success("Schedule removed", theme),
-                crate::theme::style_accent(&format!("(id={id})", ), theme),
+                crate::theme::style_accent(&format!("(id={id})",), theme),
             );
         }
         ScheduleAction::List => {
@@ -134,14 +137,20 @@ pub fn run(cfg: &Config, args: &ScheduleArgs) -> Result<()> {
             let schedules = crate::db::list_schedules(&conn)?;
 
             if schedules.is_empty() {
-                println!("{}", crate::theme::style_muted("No schedules configured", theme));
+                println!(
+                    "{}",
+                    crate::theme::style_muted("No schedules configured", theme)
+                );
                 return Ok(());
             }
 
             println!(
                 "{}",
                 crate::theme::style_header(
-                    &format!("{:<5} {:<20} {:<30} {:<8} Last Run", "ID", "Cron", "Target Path", "Enabled"),
+                    &format!(
+                        "{:<5} {:<20} {:<30} {:<8} Last Run",
+                        "ID", "Cron", "Target Path", "Enabled"
+                    ),
                     theme,
                 ),
             );
@@ -154,8 +163,14 @@ pub fn run(cfg: &Config, args: &ScheduleArgs) -> Result<()> {
                 println!(
                     "{} {} {} {} {}",
                     crate::theme::style_accent(&format!("{:<5}", s.id), theme),
-                    crate::theme::style_value(&format!("{:<20}", truncate_str(&s.cron_expression, 20)), theme),
-                    crate::theme::style_value(&format!("{:<30}", truncate_str(&s.target_path, 30)), theme),
+                    crate::theme::style_value(
+                        &format!("{:<20}", truncate_str(&s.cron_expression, 20)),
+                        theme
+                    ),
+                    crate::theme::style_value(
+                        &format!("{:<30}", truncate_str(&s.target_path, 30)),
+                        theme
+                    ),
                     crate::theme::style_value(
                         &format!("{:<8}", if s.enabled { "yes" } else { "no" }),
                         theme,

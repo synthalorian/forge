@@ -35,7 +35,10 @@ pub fn run(action: &ThemeAction) -> Result<()> {
                         "  {} {} {}",
                         crate::theme::style_accent(&format!("• {}", name), theme),
                         crate::theme::style_muted("(12 colors)", theme),
-                        crate::theme::style_success("← active", crate::theme::get_theme(current_name))
+                        crate::theme::style_success(
+                            "← active",
+                            crate::theme::get_theme(current_name)
+                        )
                     );
                 } else {
                     println!(
