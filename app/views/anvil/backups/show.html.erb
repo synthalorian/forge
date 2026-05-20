@@ -1,0 +1,104 @@
+<% content_for :breadcrumb do %>
+  <%= link_to "Anvil", "/anvil", class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <%= link_to "Backups", anvil_backups_path, class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <span class="text-text-primary">#<%= @backup[:id] %></span>
+<% end %>
+
+<% @title = "#{@backup[:repo_name]} · Backup ##{@backup[:id]}" %>
+
+<div class="max-w-4xl space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="flex items-center gap-3">
+        <span class="text-neon-cyan text-2xl">◆</span>
+        <h1 class="text-2xl font-bold text-text-primary font-mono"><%= @backup[:repo_name] %></h1>
+        <%= backup_type_badge(@backup[:backup_type]) %>
+      </div>
+      <p class="text-text-muted text-sm mt-1 font-mono"><%= @backup[:repo_path] %></p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-4">
+      <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Created</p>
+      <p class="text-sm font-mono text-text-primary"><%= human_time(@backup[:created_at]) %></p>
+      <p class="text-xs text-text-dim mt-0.5"><%= time_ago(@backup[:created_at]) %></p>
+    </div>
+
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-4">
+      <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Size</p>
+      <p class="text-sm font-mono text-text-primary"><%= human_size(@backup[:size_bytes]) %></p>
+      <p class="text-xs text-text-dim mt-0.5"><%= number_with_delimiter(@backup[:size_bytes]) %> bytes</p>
+    </div>
+
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-4">
+      <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Backup ID</p>
+      <p class="text-sm font-mono text-neon-cyan">#<%= @backup[:id] %></p>
+    </div>
+
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-4">
+      <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Commits</p>
+      <p class="text-xl font-bold font-mono text-text-primary"><%= @backup[:commit_count] %></p>
+    </div>
+
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-4">
+      <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Branches</p>
+      <p class="text-xl font-bold font-mono text-text-primary"><%= @backup[:branch_count] %></p>
+    </div>
+
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-4">
+      <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Tags</p>
+      <p class="text-xl font-bold font-mono text-text-primary"><%= @backup[:tag_count] %></p>
+    </div>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-4">
+    <p class="text-xs text-text-muted uppercase tracking-wider mb-2">SHA-256 Checksum</p>
+    <div class="flex items-center gap-3">
+      <code class="text-xs font-mono text-neon-cyan break-all bg-bg-dark/50 px-3 py-2 rounded-lg flex-1">
+        <%= @backup[:sha256] %>
+      </code>
+    </div>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-4">
+    <p class="text-xs text-text-muted uppercase tracking-wider mb-2">Archive Location</p>
+    <p class="text-sm font-mono text-text-primary truncate"><%= @backup[:archive_path] %></p>
+  </div>
+
+  <% if Rails.cache.read("forge_restore_running_#{@backup[:id]}") %>
+    <div class="rounded-lg bg-neon-yellow/10 border border-neon-yellow/30 p-3 text-neon-yellow text-sm">
+      ⏳ Restore in progress...
+    </div>
+  <% elsif (restore_result = Rails.cache.read("forge_restore_result_#{@backup[:id]}")) %>
+    <% if restore_result["status"] == "success" %>
+      <div class="rounded-lg bg-neon-green/10 border border-neon-green/30 p-3 text-neon-green text-sm">
+        ✓ Restore complete!
+      </div>
+    <% else %>
+      <div class="rounded-lg bg-neon-red/10 border border-neon-red/30 p-3 text-neon-red text-sm">
+        ✗ <%= restore_result["message"] %>
+      </div>
+    <% end %>
+    <% Rails.cache.delete("forge_restore_result_#{@backup[:id]}") %>
+  <% end %>
+
+  <div class="flex gap-3 pt-2">
+    <%= button_to "Restore Backup",
+        restore_anvil_backup_path(@backup[:id]),
+        method: :post,
+        data: { turbo_confirm: "Restore backup ##{@backup[:id]} — #{@backup[:repo_name]}? Files will be extracted to ./restored/#{@backup[:repo_name]}" },
+        class: "px-4 py-2 rounded-lg bg-neon-hot-pink/20 border border-neon-hot-pink/40
+                text-neon-hot-pink hover:bg-neon-hot-pink/30
+                transition-colors text-sm font-medium" %>
+
+    <%= link_to anvil_backups_path,
+        class: "px-4 py-2 rounded-lg bg-bg-panel border border-border-faint
+                text-text-muted hover:text-text-primary hover:border-neon-cyan/30
+                transition-colors text-sm font-medium" do %>
+      ← Back to Backups
+    <% end %>
+  </div>
+</div>

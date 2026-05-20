@@ -1,0 +1,18 @@
+<%
+  variant ||= "default"
+  size ||= "sm"
+  variant_styles = {
+    "success" => "bg-neon-cyan/10 text-neon-cyan border-neon-cyan/20",
+    "warning" => "bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20",
+    "error"   => "bg-neon-red/10 text-neon-red border-neon-red/20",
+    "info"    => "bg-neon-purple/10 text-neon-purple border-neon-purple/20",
+    "default" => "bg-border-subtle/10 text-text-muted border-border-faint",
+  }
+  style_class = variant_styles[variant] || variant_styles["default"]
+  size_class = size == "sm" ? "px-2 py-0.5 text-xs" : "px-3 py-1 text-sm"
+%>
+
+<div class="inline-flex items-center gap-1.5 rounded-md border <%= style_class %> <%= size_class %> font-medium">
+  <span class="w-1.5 h-1.5 rounded-full bg-current opacity-70"></span>
+  <%= label %>
+</div>

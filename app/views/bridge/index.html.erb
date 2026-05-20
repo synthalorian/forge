@@ -1,0 +1,42 @@
+<% content_for :breadcrumb do %>
+  <span class="text-text-primary">Bridge</span>
+<% end %>
+
+<div class="space-y-8 max-w-6xl">
+  <div>
+    <div class="flex items-center gap-3">
+      <span class="text-neon-blue text-3xl">⇌</span>
+      <div>
+        <h1 class="text-2xl font-bold text-neon-blue font-mono tracking-tight">BRIDGE</h1>
+        <p class="text-text-muted text-sm mt-0.5">External integrations — link everything together</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-8 text-center">
+    <span class="text-4xl text-neon-blue/40 mb-4 block">⇌</span>
+    <h2 class="text-xl font-bold text-text-primary mb-2">Building the Bridge</h2>
+    <p class="text-text-muted max-w-md mx-auto mb-6">
+      Webhook endpoints, notification routing, task synchronization, and calendar integration. Coming when the time is right.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-2xl mx-auto text-left">
+      <% features = [
+        { cmd: "forge bridge", desc: "Connection status" },
+        { cmd: "forge bridge hooks", desc: "Webhook management" },
+        { cmd: "forge bridge notify", desc: "Notification hub" },
+        { cmd: "forge bridge sync", desc: "Task synchronization" },
+        { cmd: "forge bridge calendar", desc: "Calendar integration" },
+        { cmd: "forge bridge status", desc: "All connections check" }
+      ] %>
+      <% features.each do |f| %>
+        <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
+          <code class="text-xs text-neon-cyan font-mono"><%= f[:cmd] %></code>
+          <p class="text-xs text-text-muted mt-1"><%= f[:desc] %></p>
+        </div>
+      <% end %>
+    </div>
+
+    <p class="text-xs text-text-dim mt-6 font-mono uppercase tracking-widest">Coming in forge v0.3+</p>
+  </div>
+</div>
