@@ -1,0 +1,130 @@
+<% content_for :breadcrumb do %>
+  <%= link_to "Anvil", "/anvil", class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <span class="text-text-primary">Backups</span>
+<% end %>
+
+<div class="space-y-6 max-w-6xl">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-neon-cyan font-mono tracking-tight">BACKUPS</h1>
+      <p class="text-text-muted text-sm mt-1">
+        <%= @total_count %> total · <%= human_size(@disk_usage) %> used
+      </p>
+    </div>
+    <div class="flex gap-3">
+      <%= button_to "Backup All", trigger_anvil_backups_path,
+          method: :post,
+          class: "px-4 py-2 rounded-lg bg-neon-cyan/20 border border-neon-cyan/40
+                  text-neon-cyan hover:bg-neon-cyan/30 transition-colors text-sm font-medium cursor-pointer" %>
+      <%= link_to "/anvil/schedules",
+          class: "px-4 py-2 rounded-lg bg-bg-panel border border-border-faint
+                  text-text-muted hover:text-text-primary hover:border-border-subtle/40
+                  transition-colors text-sm font-medium" do %>
+        Schedules
+      <% end %>
+    </div>
+  </div>
+
+  <div data-controller="backup-chart"
+       data-backup-chart-url-value="<%= chart_data_anvil_backups_path(format: :json) %>"
+       class="rounded-xl bg-bg-panel border border-border-faint p-4">
+    <h2 class="text-sm font-mono text-text-muted mb-3 tracking-wider uppercase">Backup History (30 Days)</h2>
+    <div style="position: relative; height: 300px;">
+      <canvas></canvas>
+    </div>
+  </div>
+
+  <% status = backup_status %>
+  <% if status.present? && status[:running] && session[:active_backup_job_id].present? %>
+    <div class="rounded-xl bg-bg-panel border border-neon-yellow/30 p-4"
+         data-controller="backup-progress"
+         data-backup-progress-job-id-value="<%= session[:active_backup_job_id] %>">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-2 h-2 rounded-full bg-neon-yellow animate-pulse"></div>
+        <span id="backup-status" class="text-neon-yellow font-mono text-sm">Backup in progress...</span>
+      </div>
+      <div id="backup-output"
+           class="bg-bg-dark rounded-lg p-3 max-h-64 overflow-y-auto font-mono text-xs text-text-muted space-y-0.5">
+      </div>
+      <%= turbo_stream_from "backup_progress_#{session[:active_backup_job_id]}" %>
+    </div>
+  <% elsif status.present? && status["status"].present? %>
+    <div class="rounded-xl bg-bg-panel border <%= status["status"] == "success" ? 'border-neon-green/30' : 'border-neon-red/30' %> p-4">
+      <% if status["status"] == "success" %>
+        <p class="text-sm text-neon-green font-mono">Backup completed successfully.</p>
+      <% else %>
+        <p class="text-sm text-neon-red font-mono">Backup failed: <%= status["message"] %></p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @backups.any? %>
+    <div class="space-y-2">
+      <% @backups.each do |backup| %>
+        <%= link_to anvil_backup_path(backup[:id]),
+            class: "block rounded-xl bg-bg-panel border border-border-faint p-4
+                    hover:border-neon-cyan/30 hover:bg-bg-surface/50 transition-all duration-200 group" do %>
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4 min-w-0">
+              <span class="text-neon-cyan text-lg shrink-0">◆</span>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-text-primary truncate group-hover:text-neon-cyan transition-colors">
+                  <%= backup[:repo_name] %>
+                </p>
+                <p class="text-xs text-text-muted truncate mt-0.5 font-mono">
+                  <%= backup[:repo_path] %>
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 shrink-0">
+              <div class="text-right hidden sm:block">
+                <p class="text-xs text-text-muted font-mono"><%= human_size(backup[:size_bytes]) %></p>
+              </div>
+              <div class="text-right w-20">
+                <p class="text-xs text-text-muted"><%= relative_backup_time(backup[:created_at]) %></p>
+              </div>
+              <div class="hidden md:block w-16 text-right">
+                <%= backup_type_badge(backup[:backup_type]) %>
+              </div>
+              <span class="text-text-dim text-xs group-hover:text-neon-cyan transition-colors">→</span>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <% if @total_pages > 1 %>
+      <div class="flex items-center justify-between pt-2">
+        <p class="text-xs text-text-muted font-mono">
+          Page <%= @page %> of <%= @total_pages %>
+        </p>
+        <div class="flex gap-2">
+          <% if @page > 1 %>
+            <%= link_to anvil_backups_path(page: @page - 1),
+                class: "px-3 py-1.5 rounded-lg bg-bg-panel border border-border-faint
+                        text-text-muted hover:text-text-primary hover:border-neon-cyan/30
+                        transition-colors text-sm" do %>
+              ← Previous
+            <% end %>
+          <% end %>
+          <% if @page < @total_pages %>
+            <%= link_to anvil_backups_path(page: @page + 1),
+                class: "px-3 py-1.5 rounded-lg bg-bg-panel border border-border-faint
+                        text-text-muted hover:text-text-primary hover:border-neon-cyan/30
+                        transition-colors text-sm" do %>
+              Next →
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <%= render "components/empty_state",
+      icon: "◆",
+      message: "No backups yet",
+      description: "Run `forge quench` in your terminal to create your first backup.",
+      action_text: "View Dashboard",
+      action_path: "/" %>
+  <% end %>
+</div>

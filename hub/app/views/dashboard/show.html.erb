@@ -1,0 +1,134 @@
+<% content_for :breadcrumb do %>
+  <span class="text-text-primary">Dashboard</span>
+<% end %>
+
+<div class="space-y-8 max-w-6xl">
+  <div>
+    <h1 class="text-3xl font-bold text-neon-cyan font-mono tracking-tight">FORGE HUB</h1>
+    <p class="text-text-muted mt-1 text-sm">Command center for your forge infrastructure</p>
+  </div>
+
+  <% if @forge_installed %>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <%= stat_card label: "Backups", value: @backup_count, icon: "◆",
+          icon_color: "text-neon-cyan", href: anvil_backups_path %>
+      <%= stat_card label: "Repositories", value: @unique_repos, icon: "⬡",
+          icon_color: "text-neon-purple" %>
+      <%= stat_card label: "Active Schedules", value: @schedule_count, icon: "⚡",
+          icon_color: "text-neon-pink", href: anvil_schedules_path %>
+      <%= stat_card label: "Storage Used", value: human_size(@disk_usage), icon: "◈",
+          icon_color: "text-neon-yellow" %>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+        <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Most Backed Up Repos</h3>
+        <% if @top_repos.present? %>
+          <div class="space-y-2">
+            <% @top_repos.each_with_index do |repo, i| %>
+              <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-bg-surface/50 border border-border-faint">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-xs font-mono text-text-dim w-5 text-right"><%= i + 1 %>.</span>
+                  <span class="text-sm font-mono text-neon-cyan"><%= repo[:name] %></span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs text-text-muted"><%= human_size(repo[:total_size]) %></span>
+                  <span class="text-xs font-mono text-text-primary bg-neon-cyan/10 px-2 py-0.5 rounded"><%= repo[:count] %> backups</span>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-text-muted text-sm">No backups yet</p>
+        <% end %>
+      </div>
+
+      <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+        <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Latest Backup</h3>
+        <% if @latest_backup %>
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <span class="text-neon-cyan text-lg">◆</span>
+              <span class="text-sm font-mono text-text-primary"><%= @latest_backup[:repo_name] %></span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="py-2 px-3 rounded-lg bg-bg-surface/50 border border-border-faint">
+                <span class="text-text-dim block mb-0.5">Size</span>
+                <span class="text-text-primary font-mono"><%= human_size(@latest_backup[:size_bytes]) %></span>
+              </div>
+              <div class="py-2 px-3 rounded-lg bg-bg-surface/50 border border-border-faint">
+                <span class="text-text-dim block mb-0.5">When</span>
+                <span class="text-text-primary font-mono" title="<%= human_time(@latest_backup[:created_at]) %>"><%= time_ago(@latest_backup[:created_at]) %></span>
+              </div>
+              <div class="py-2 px-3 rounded-lg bg-bg-surface/50 border border-border-faint">
+                <span class="text-text-dim block mb-0.5">Commits</span>
+                <span class="text-text-primary font-mono"><%= @latest_backup[:commit_count] %></span>
+              </div>
+              <div class="py-2 px-3 rounded-lg bg-bg-surface/50 border border-border-faint">
+                <span class="text-text-dim block mb-0.5">Type</span>
+                <span class="text-text-primary font-mono"><%= @latest_backup[:backup_type]&.capitalize || "Full" %></span>
+              </div>
+            </div>
+          </div>
+        <% else %>
+          <div class="text-center py-6">
+            <span class="text-3xl text-text-dim block mb-2">💾</span>
+            <p class="text-text-muted text-sm mb-4">No backups yet</p>
+            <%= link_to "Run your first backup", anvil_backups_path,
+                class: "px-4 py-2 rounded-lg bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 hover:bg-neon-cyan/20 transition-colors text-sm font-medium" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-8 text-center">
+      <span class="text-4xl text-text-dim mb-4 block">🔧</span>
+      <h2 class="text-xl font-bold text-text-primary mb-2">Forge Not Detected</h2>
+      <p class="text-text-muted max-w-md mx-auto mb-6">
+        Forge Hub needs the forge CLI to be installed and have at least one backup to show stats.
+      </p>
+      <div class="inline-flex items-center gap-3">
+        <%= link_to "/anvil/backups",
+            class: "px-4 py-2 rounded-lg bg-neon-cyan/10 text-neon-cyan
+                    border border-neon-cyan/30 hover:bg-neon-cyan/20 transition-colors text-sm font-medium" do %>
+          Try Anyway
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <div>
+    <h2 class="text-lg font-semibold text-text-primary mb-4">Pillars</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <% pillars = [
+        { name: "Anvil", path: "/anvil", icon: "◆", desc: "Backup & restore management", color: "text-neon-cyan", border_hover: "hover:border-neon-cyan/40", status: "active" },
+        { name: "Bellows", path: "/bellows", icon: "◇", desc: "AI agent orchestration", color: "text-neon-purple", border_hover: "hover:border-neon-purple/40", status: "coming" },
+        { name: "Flame", path: "/flame", icon: "✦", desc: "Template scaffolding engine", color: "text-neon-pink", border_hover: "hover:border-neon-pink/40", status: "coming" },
+        { name: "Tongs", path: "/tongs", icon: "▣", desc: "Code transformation toolkit", color: "text-neon-yellow", border_hover: "hover:border-neon-yellow/40", status: "coming" },
+        { name: "Crucible", path: "/crucible", icon: "⬡", desc: "Build & compilation pipeline", color: "text-neon-red", border_hover: "hover:border-neon-red/40", status: "coming" },
+        { name: "Bridge", path: "/bridge", icon: "⇌", desc: "External integration gateway", color: "text-neon-blue", border_hover: "hover:border-neon-blue/40", status: "coming" },
+      ] %>
+      <% pillars.each do |pillar| %>
+        <% active = pillar[:status] == "active" %>
+        <a href="<%= pillar[:path] %>"
+           class="group rounded-xl bg-bg-panel border border-border-faint p-5 <%= pillar[:border_hover] %> hover:bg-bg-surface/50 transition-all duration-200 block">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="<%= pillar[:color] %> text-xl"><%= pillar[:icon] %></span>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-text-primary">
+                <%= pillar[:name] %>
+              </span>
+              <% if active %>
+                <span class="w-1.5 h-1.5 rounded-full bg-neon-cyan"></span>
+              <% end %>
+            </div>
+          </div>
+          <p class="text-xs text-text-muted"><%= pillar[:desc] %></p>
+          <% unless active %>
+            <span class="inline-block mt-2 text-[10px] uppercase tracking-widest text-text-dim font-mono">Coming Soon</span>
+          <% end %>
+        </a>
+      <% end %>
+    </div>
+  </div>
+</div>

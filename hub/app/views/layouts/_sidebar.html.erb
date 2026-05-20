@@ -1,0 +1,97 @@
+<%# frozen_string_literal: true %>
+
+<%
+  current_path = request.path
+  pillars = [
+    { name: "Dashboard",   path: "/",          icon: "◈", color: "text-neon-cyan" },
+    { name: "Anvil",       path: "/anvil",     icon: "◆", color: "text-neon-cyan" },
+    { name: "Bellows",     path: "/bellows",   icon: "◇", color: "text-neon-purple" },
+    { name: "Flame",       path: "/flame",     icon: "✦", color: "text-neon-pink" },
+    { name: "Tongs",       path: "/tongs",     icon: "▣", color: "text-neon-yellow" },
+    { name: "Crucible",    path: "/crucible",  icon: "⬡", color: "text-neon-red" },
+    { name: "Bridge",      path: "/bridge",    icon: "⇌", color: "text-neon-blue" },
+  ]
+%>
+
+<aside
+  data-sidebar-target="sidebar"
+  class="w-60 sidebar-scroll
+         bg-sidebar-bg border-r border-border-faint
+         flex flex-col
+         transition-all duration-300
+         shrink-0 overflow-y-auto overflow-x-hidden"
+>
+  <div class="px-5 py-5 border-b border-border-faint">
+    <a href="/" class="flex items-center gap-3 group">
+      <span class="text-neon-cyan text-xl font-bold font-mono tracking-wider
+                   group-hover:text-neon-pink transition-colors duration-300">
+        FORGE
+      </span>
+      <span class="sidebar-brand-text text-xs text-text-muted font-mono tracking-widest uppercase">Hub</span>
+    </a>
+  </div>
+
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <% pillars.each_with_index do |pillar, i| %>
+      <%
+        active = current_path == pillar[:path] ||
+                 (pillar[:path] != "/" && current_path.start_with?(pillar[:path]))
+      %>
+      <% if i == 1 %>
+        <div class="sidebar-section-label pt-3 pb-1 px-3">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-text-dim">Pillars</span>
+        </div>
+      <% end %>
+      <%= link_to pillar[:path],
+          class: "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                  transition-all duration-200 group relative
+                  #{active ? 'bg-sidebar-active text-neon-cyan border-l-2 border-neon-cyan' :
+                             'text-text-muted hover:bg-sidebar-hover hover:text-text-primary border-l-2 border-transparent'}" do %>
+        <span class="<%= pillar[:color] %> text-base w-5 text-center shrink-0"><%= pillar[:icon] %></span>
+        <span class="nav-label truncate"><%= pillar[:name] %></span>
+      <% end %>
+    <% end %>
+  </nav>
+
+  <div data-controller="theme" class="px-3 pb-2">
+    <div class="theme-dropdown">
+      <button
+        data-action="click->theme#toggleMenu"
+        class="sidebar-theme-picker w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+               text-text-muted hover:bg-sidebar-hover hover:text-text-primary transition-all duration-200"
+      >
+        <span class="text-text-dim text-base w-5 text-center shrink-0">🎨</span>
+        <span class="nav-label" data-theme-picker data-theme-label="Synthwave84">Synthwave84</span>
+      </button>
+      <div class="theme-dropdown-menu bg-bg-panel border border-border-faint shadow-lg">
+        <button data-action="click->theme#select" data-theme-value="synthwave84"
+                class="theme-dropdown-item w-full text-left text-text-primary bg-bg-panel hover:bg-sidebar-hover">
+          <span class="w-3 h-3 rounded-full bg-neon-cyan shrink-0"></span>
+          <span>Synthwave84</span>
+        </button>
+        <button data-action="click->theme#select" data-theme-value="midnight"
+                class="theme-dropdown-item w-full text-left text-text-primary bg-bg-panel hover:bg-sidebar-hover">
+          <span class="w-3 h-3 rounded-full bg-neon-blue shrink-0"></span>
+          <span>Midnight</span>
+        </button>
+        <button data-action="click->theme#select" data-theme-value="ocean"
+                class="theme-dropdown-item w-full text-left text-text-primary bg-bg-panel hover:bg-sidebar-hover">
+          <span class="w-3 h-3 rounded-full shrink-0" style="background:#2dd4bf"></span>
+          <span>Ocean</span>
+        </button>
+        <button data-action="click->theme#select" data-theme-value="light"
+                class="theme-dropdown-item w-full text-left text-text-primary bg-bg-panel hover:bg-sidebar-hover">
+          <span class="w-3 h-3 rounded-full bg-text-dim shrink-0"></span>
+          <span>Light</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-5 py-3 border-t border-border-faint">
+    <div class="flex items-center gap-2 text-xs text-text-dim">
+      <span class="sidebar-connection-dot w-2 h-2 rounded-full bg-neon-green shrink-0"></span>
+      <span class="sidebar-version-text font-mono">forge v0.2.0</span>
+    </div>
+  </div>
+</aside>

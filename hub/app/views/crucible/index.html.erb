@@ -1,0 +1,42 @@
+<% content_for :breadcrumb do %>
+  <span class="text-text-primary">Crucible</span>
+<% end %>
+
+<div class="space-y-8 max-w-6xl">
+  <div>
+    <div class="flex items-center gap-3">
+      <span class="text-neon-red text-3xl">⬡</span>
+      <div>
+        <h1 class="text-2xl font-bold text-neon-red font-mono tracking-tight">CRUCIBLE</h1>
+        <p class="text-text-muted text-sm mt-0.5">Creative tools — where raw material becomes something beautiful</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-8 text-center">
+    <span class="text-4xl text-neon-red/40 mb-4 block">⬡</span>
+    <h2 class="text-xl font-bold text-text-primary mb-2">The Crucible is Heating Up</h2>
+    <p class="text-text-muted max-w-md mx-auto mb-6">
+      Creative tools for music theory, color palettes, diagrams, and more. Currently in the design phase.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-2xl mx-auto text-left">
+      <% features = [
+        { cmd: "forge melt chords <key>", desc: "Chord progressions" },
+        { cmd: "forge melt palette", desc: "Color palette generation" },
+        { cmd: "forge melt diagram", desc: "ASCII/SVG diagrams" },
+        { cmd: "forge melt image", desc: "Image generation bridge" },
+        { cmd: "forge melt markdown", desc: "Markdown authoring" },
+        { cmd: "forge melt chords suggest", desc: "Mood-based suggestions" }
+      ] %>
+      <% features.each do |f| %>
+        <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
+          <code class="text-xs text-neon-cyan font-mono"><%= f[:cmd] %></code>
+          <p class="text-xs text-text-muted mt-1"><%= f[:desc] %></p>
+        </div>
+      <% end %>
+    </div>
+
+    <p class="text-xs text-text-dim mt-6 font-mono uppercase tracking-widest">Coming in forge v0.3+</p>
+  </div>
+</div>
