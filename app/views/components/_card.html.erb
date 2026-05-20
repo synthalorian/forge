@@ -1,0 +1,20 @@
+<%
+  hover_border ||= "hover:border-neon-cyan/30"
+  padding ||= "p-5"
+  extra_class ||= ""
+  icon_color ||= "text-neon-cyan"
+%>
+
+<div class="rounded-xl bg-bg-panel border border-border-faint <%= padding %> <%= hover_border %> transition-all duration-200 <%= extra_class %>">
+  <% if local_assigns[:title] || local_assigns[:icon] %>
+    <div class="flex items-center gap-3 mb-3">
+      <% if local_assigns[:icon] %>
+        <span class="<%= icon_color %> text-xl"><%= icon %></span>
+      <% end %>
+      <% if local_assigns[:title] %>
+        <h3 class="text-sm font-semibold text-text-primary"><%= title %></h3>
+      <% end %>
+    </div>
+  <% end %>
+  <%= content %>
+</div>

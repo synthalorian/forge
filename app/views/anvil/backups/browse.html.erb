@@ -1,0 +1,137 @@
+<% content_for :breadcrumb do %>
+  <%= link_to "Anvil", "/anvil", class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <%= link_to "Backups", anvil_backups_path, class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <%= link_to @backup[:repo_name], anvil_backup_path(@backup[:id]), class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <span class="text-text-primary">Browse</span>
+<% end %>
+
+<% @title = "Browse · #{@backup[:repo_name]} · Backup ##{@backup[:id]}" %>
+
+<div class="max-w-5xl space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="flex items-center gap-3">
+        <span class="text-neon-cyan text-2xl">◆</span>
+        <h1 class="text-2xl font-bold text-text-primary font-mono"><%= @backup[:repo_name] %></h1>
+        <span class="text-xs text-text-dim font-mono px-2 py-0.5 rounded bg-bg-panel border border-border-subtle/20">BROWSE</span>
+      </div>
+      <p class="text-text-muted text-sm mt-1 font-mono">
+        <%= human_size(@backup[:size_bytes]) %> · <%= @backup[:commit_count] %> commits · <%= @backup[:branch_count] %> branches · <%= @backup[:tag_count] %> tags
+      </p>
+    </div>
+  </div>
+
+  <% if @archive_entries[:error] == :archive_missing %>
+    <!-- Archive file not found -->
+    <div class="rounded-xl bg-bg-panel border border-neon-hot-pink/30 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="text-neon-hot-pink text-lg">✗</span>
+        <h2 class="text-lg font-semibold text-text-primary">Archive Not Found</h2>
+      </div>
+      <p class="text-text-muted text-sm font-mono">
+        The archive file for this backup could not be found at the expected location:
+      </p>
+      <code class="text-xs font-mono text-neon-hot-pink bg-bg-dark/50 px-3 py-2 rounded-lg block mt-2 break-all">
+        <%= @backup[:archive_path] %>
+      </code>
+      <p class="text-text-dim text-xs mt-3">
+        The archive may have been moved, deleted, or the backup was recorded from a different machine.
+      </p>
+    </div>
+
+  <% elsif @archive_entries[:error] == :zstd_not_installed %>
+    <div class="rounded-xl bg-bg-panel border border-neon-yellow/30 p-4 mb-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-neon-yellow">⚠</span>
+        <p class="text-neon-yellow text-sm font-mono">zstd not installed — showing metadata only</p>
+      </div>
+      <p class="text-text-dim text-xs">
+        Install zstd (<code>sudo apt install zstd</code>) to browse archive file contents.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="rounded-xl bg-bg-panel border border-border-subtle/20 p-4">
+        <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Repository</p>
+        <p class="text-sm font-mono text-text-primary"><%= @backup[:repo_name] %></p>
+        <p class="text-xs text-text-dim mt-0.5 truncate"><%= @backup[:repo_path] %></p>
+      </div>
+      <div class="rounded-xl bg-bg-panel border border-border-subtle/20 p-4">
+        <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Size</p>
+        <p class="text-sm font-mono text-text-primary"><%= human_size(@backup[:size_bytes]) %></p>
+        <p class="text-xs text-text-dim mt-0.5"><%= number_with_delimiter(@backup[:size_bytes]) %> bytes</p>
+      </div>
+      <div class="rounded-xl bg-bg-panel border border-border-subtle/20 p-4">
+        <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Created</p>
+        <p class="text-sm font-mono text-text-primary"><%= human_time(@backup[:created_at]) %></p>
+        <p class="text-xs text-text-dim mt-0.5"><%= time_ago(@backup[:created_at]) %></p>
+      </div>
+      <div class="rounded-xl bg-bg-panel border border-border-subtle/20 p-4">
+        <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Commits</p>
+        <p class="text-xl font-bold font-mono text-text-primary"><%= @backup[:commit_count] %></p>
+      </div>
+      <div class="rounded-xl bg-bg-panel border border-border-subtle/20 p-4">
+        <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Branches</p>
+        <p class="text-xl font-bold font-mono text-text-primary"><%= @backup[:branch_count] %></p>
+      </div>
+      <div class="rounded-xl bg-bg-panel border border-border-subtle/20 p-4">
+        <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Tags</p>
+        <p class="text-xl font-bold font-mono text-text-primary"><%= @backup[:tag_count] %></p>
+      </div>
+    </div>
+
+  <% elsif @archive_entries[:error] %>
+    <!-- Other errors -->
+    <div class="rounded-xl bg-bg-panel border border-neon-hot-pink/30 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="text-neon-hot-pink text-lg">✗</span>
+        <h2 class="text-lg font-semibold text-text-primary">Unable to Read Archive</h2>
+      </div>
+      <p class="text-text-muted text-sm font-mono">
+        Full file listing requires archive extraction.
+      </p>
+      <% if @archive_entries[:message].present? %>
+        <code class="text-xs font-mono text-neon-hot-pink/80 bg-bg-dark/50 px-3 py-2 rounded-lg block mt-2 break-all">
+          <%= @archive_entries[:message] %>
+        </code>
+      <% end %>
+      <p class="text-text-dim text-xs mt-3">
+        The archive may be corrupted or in an unsupported format.
+      </p>
+    </div>
+
+  <% else %>
+    <!-- File listing -->
+    <div class="rounded-xl bg-bg-panel border border-border-subtle/20 overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-border-subtle/20 bg-bg-dark/30">
+        <div class="flex items-center gap-2">
+          <span class="text-neon-cyan text-sm">◆</span>
+          <span class="text-sm font-mono text-text-primary font-semibold">Archive Contents</span>
+        </div>
+        <span class="text-xs text-text-dim font-mono">
+          <%= pluralize(@archive_entries[:total_count], "entry") %>
+        </span>
+      </div>
+
+      <div class="bg-bg-dark/20 p-4 max-h-[600px] overflow-y-auto">
+        <pre class="font-mono text-xs leading-relaxed text-text-muted"><% @archive_entries[:entries].each do |entry| %><% if entry[:directory] %><span class="text-neon-cyan">📁 <%= entry[:path] %>/</span>
+<% else %><span class="text-text-muted">   <%= entry[:path] %></span>
+<% end %><% end %></pre>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Actions -->
+  <div class="flex gap-3 pt-2">
+    <%= link_to anvil_backup_path(@backup[:id]),
+        class: "px-4 py-2 rounded-lg bg-bg-panel border border-border-subtle/20
+                text-text-muted hover:text-text-primary hover:border-neon-cyan/30
+                transition-colors text-sm font-medium" do %>
+      ← Back to Backup Detail
+    <% end %>
+  </div>
+</div>
