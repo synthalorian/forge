@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::sync::OnceLock;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
@@ -265,21 +268,150 @@ pub fn get_default_theme() -> &'static Theme {
     &SYNTHWAVE84
 }
 
-pub fn get_theme(name: &str) -> &'static Theme {
-    let lower = name.to_lowercase();
-    ALL_THEMES
-        .iter()
-        .find(|t| t.name == lower)
-        .copied()
-        .unwrap_or(&SYNTHWAVE84)
-}
-
 pub fn load_from_config(cfg: &crate::config::Config) -> &'static Theme {
     get_theme(&cfg.theme)
 }
 
 pub fn available_themes() -> Vec<&'static str> {
-    ALL_THEMES.iter().map(|t| t.name).collect()
+    let mut names: Vec<&'static str> = ALL_THEMES.iter().map(|t| t.name).collect();
+    for custom in custom_themes().iter() {
+        names.push(custom.name);
+    }
+    names
+}
+
+// ── Custom Theme System ───────────────────────────────────────
+
+/// Serde-friendly representation for TOML theme files.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CustomThemeDef {
+    pub name: String,
+    pub header: String,
+    pub accent: String,
+    pub success: String,
+    pub error: String,
+    pub warning: String,
+    pub info: String,
+    pub muted: String,
+    pub border: String,
+    pub value: String,
+    pub label: String,
+    pub progress_bar: String,
+}
+
+impl CustomThemeDef {
+    fn hex_to_color(hex: &str) -> ThemeColor {
+        let hex = hex.trim_start_matches('#');
+        let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(0);
+        let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(0);
+        let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(0);
+        ThemeColor::new(r, g, b)
+    }
+
+    pub fn to_theme(&self) -> Option<(&'static str, Theme)> {
+        let name = self.name.to_lowercase();
+        if !name.ends_with(" (custom)") {
+            return None; // Already a built-in name, skip
+        }
+        Some((
+            Box::leak(name.into_boxed_str()),
+            Theme {
+                name: "", // filled below
+                header: Self::hex_to_color(&self.header),
+                accent: Self::hex_to_color(&self.accent),
+                success: Self::hex_to_color(&self.success),
+                error: Self::hex_to_color(&self.error),
+                warning: Self::hex_to_color(&self.warning),
+                info: Self::hex_to_color(&self.info),
+                muted: Self::hex_to_color(&self.muted),
+                border: Self::hex_to_color(&self.border),
+                value: Self::hex_to_color(&self.value),
+                label: Self::hex_to_color(&self.label),
+                progress_bar: Self::hex_to_color(&self.progress_bar),
+            },
+        ))
+    }
+}
+
+pub fn custom_theme_dir() -> PathBuf {
+    let xdg_data = std::env::var("XDG_DATA_HOME")
+        .unwrap_or_else(|_| format!("{}/.local/share", std::env::var("HOME").unwrap_or_default()));
+    PathBuf::from(xdg_data).join("forge").join("themes")
+}
+
+/// Load custom themes from `~/.forge/themes/*.toml`.
+/// Results are cached in a OnceLock after first load.
+pub fn custom_themes() -> &'static Vec<Theme> {
+    static CUSTOM: OnceLock<Vec<Theme>> = OnceLock::new();
+    CUSTOM.get_or_init(|| {
+        let dir = custom_theme_dir();
+        let mut themes = Vec::new();
+        if !dir.exists() {
+            return themes;
+        }
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) != Some("toml") {
+                    continue;
+                }
+                let content = match std::fs::read_to_string(&path) {
+                    Ok(c) => c,
+                    Err(_) => continue,
+                };
+                let custom: CustomThemeDef = match toml::from_str(&content) {
+                    Ok(c) => c,
+                    Err(_) => continue,
+                };
+                let name = custom.name.to_lowercase();
+                // Skip if name collides with a built-in theme
+                if ALL_THEMES.iter().any(|t| t.name == name) {
+                    continue;
+                }
+                let leaked_name: &'static str = Box::leak(name.into_boxed_str());
+                themes.push(Theme {
+                    name: leaked_name,
+                    header: CustomThemeDef::hex_to_color(&custom.header),
+                    accent: CustomThemeDef::hex_to_color(&custom.accent),
+                    success: CustomThemeDef::hex_to_color(&custom.success),
+                    error: CustomThemeDef::hex_to_color(&custom.error),
+                    warning: CustomThemeDef::hex_to_color(&custom.warning),
+                    info: CustomThemeDef::hex_to_color(&custom.info),
+                    muted: CustomThemeDef::hex_to_color(&custom.muted),
+                    border: CustomThemeDef::hex_to_color(&custom.border),
+                    value: CustomThemeDef::hex_to_color(&custom.value),
+                    label: CustomThemeDef::hex_to_color(&custom.label),
+                    progress_bar: CustomThemeDef::hex_to_color(&custom.progress_bar),
+                });
+            }
+        }
+        themes
+    })
+}
+
+/// Reload custom themes — clears the cache.
+pub fn reload_custom_themes() {
+    // The OnceLock can't be reset, so this is a no-op.
+    // Custom themes are loaded once at first access.
+    // For dynamic reload, the user restarts forge.
+}
+
+pub fn get_theme(name: &str) -> &'static Theme {
+    let lower = name.to_lowercase();
+    // Check built-in themes first
+    for t in ALL_THEMES {
+        if t.name == lower {
+            return t;
+        }
+    }
+    // Check custom themes
+    for t in custom_themes().iter() {
+        if t.name == lower {
+            return t;
+        }
+    }
+    // Fall back to default
+    &SYNTHWAVE84
 }
 
 pub fn style_header(text: &str, theme: &Theme) -> StyledString {

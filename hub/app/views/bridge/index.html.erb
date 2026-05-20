@@ -13,30 +13,105 @@
     </div>
   </div>
 
-  <div class="rounded-xl bg-bg-panel border border-border-faint p-8 text-center">
-    <span class="text-4xl text-neon-blue/40 mb-4 block">⇌</span>
-    <h2 class="text-xl font-bold text-text-primary mb-2">Building the Bridge</h2>
-    <p class="text-text-muted max-w-md mx-auto mb-6">
-      Webhook endpoints, notification routing, task synchronization, and calendar integration. Coming when the time is right.
-    </p>
+  <% unless @forge_available %>
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-8 text-center">
+      <span class="text-4xl text-neon-blue/40 mb-4 block">⇌</span>
+      <h2 class="text-xl font-bold text-text-primary mb-2">Forge CLI Not Detected</h2>
+      <p class="text-text-muted max-w-md mx-auto">Install Forge first to check integration status.</p>
+    </div>
+  <% else %>
+    <% connected = @integrations.count { |i| i[:available] } %>
+    <% total = @integrations.count %>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-2xl mx-auto text-left">
-      <% features = [
-        { cmd: "forge bridge", desc: "Connection status" },
-        { cmd: "forge bridge hooks", desc: "Webhook management" },
-        { cmd: "forge bridge notify", desc: "Notification hub" },
-        { cmd: "forge bridge sync", desc: "Task synchronization" },
-        { cmd: "forge bridge calendar", desc: "Calendar integration" },
-        { cmd: "forge bridge status", desc: "All connections check" }
-      ] %>
-      <% features.each do |f| %>
-        <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
-          <code class="text-xs text-neon-cyan font-mono"><%= f[:cmd] %></code>
-          <p class="text-xs text-text-muted mt-1"><%= f[:desc] %></p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <%= stat_card label: "Connected", value: "#{connected}/#{total}", icon: "⇌",
+          icon_color: "text-neon-blue" %>
+      <%= stat_card label: "Integrations", value: total, icon: "◈",
+          icon_color: "text-neon-purple" %>
+      <%= stat_card label: "Hooks", value: @hooks.count, icon: "⚡",
+          icon_color: "text-neon-cyan" %>
+    </div>
+
+    <!-- Integration cards grouped by type -->
+    <% groups = @integrations.group_by { |i| i[:type] } %>
+    <% type_labels = { "core" => "Core", "vcs" => "Version Control", "compress" => "Compression",
+                       "agent" => "AI Agents", "cli" => "CLI Tools", "search" => "Search",
+                       "container" => "Containers", "cache" => "Cache", "web" => "Web Services" } %>
+
+    <% groups.each do |type, integrations| %>
+      <div>
+        <h3 class="text-sm font-semibold text-text-primary mb-3 uppercase tracking-wider">
+          <%= type_labels[type] || type.capitalize %>
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <% integrations.each do |int| %>
+            <div class="rounded-xl bg-bg-panel border border-border-faint p-4
+                        <%= int[:available] ? "border-neon-green/20" : "" %>">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="<%= int[:available] ? "text-neon-green" : "text-text-dim" %> text-lg">
+                    <%= int[:available] ? "●" : "○" %>
+                  </span>
+                  <div>
+                    <span class="text-sm font-semibold font-mono text-text-primary"><%= int[:name] %></span>
+                    <% if int[:hint] %>
+                      <p class="text-xs text-text-muted mt-0.5"><%= int[:hint] %></p>
+                    <% end %>
+                  </div>
+                </div>
+                <span class="text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded
+                             <%= int[:available] ? "bg-neon-green/10 text-neon-green" : "bg-text-dim/10 text-text-dim" %>">
+                  <%= int[:available] ? "connected" : "disconnected" %>
+                </span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Hooks section -->
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+      <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">⚡ Lifecycle Hooks</h3>
+      <% if @hooks.any? %>
+        <div class="space-y-2">
+          <% @hooks.each do |hook| %>
+            <div class="flex items-center gap-3 py-2 px-3 rounded-lg bg-bg-surface/30 border border-border-faint">
+              <span class="<%= hook[:executable] ? "text-neon-green" : "text-neon-yellow" %> text-xs">
+                <%= hook[:executable] ? "●" : "○" %>
+              </span>
+              <code class="text-xs font-mono text-text-primary flex-1"><%= hook[:name] %></code>
+              <span class="text-xs text-text-muted"><%= hook[:executable] ? "executable" : "not executable" %></span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-6 text-text-dim">
+          <p class="text-sm font-mono">No hooks configured</p>
+          <p class="text-xs mt-2">Create scripts in <code class="text-neon-cyan">~/.forge/scripts/</code> to register lifecycle hooks.</p>
         </div>
       <% end %>
     </div>
 
-    <p class="text-xs text-text-dim mt-6 font-mono uppercase tracking-widest">Coming in forge v0.3+</p>
-  </div>
+    <!-- CLI commands -->
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+      <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Commands</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <% commands = [
+          { cmd: "forge bridge", desc: "Connection status dashboard" },
+          { cmd: "forge bridge hooks", desc: "List webhook endpoints" },
+          { cmd: "forge bridge notify -c desktop", desc: "Send desktop notification" },
+          { cmd: "forge bridge notify -c telegram", desc: "Send Telegram message" },
+          { cmd: "forge bridge notify -c discord", desc: "Send Discord webhook" },
+          { cmd: "forge grip diagnose", desc: "System health check" }
+        ] %>
+        <% commands.each do |cmd| %>
+          <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
+            <code class="text-xs text-neon-purple font-mono"><%= cmd[:cmd] %></code>
+            <p class="text-xs text-text-muted mt-1"><%= cmd[:desc] %></p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 </div>
