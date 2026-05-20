@@ -16,7 +16,7 @@ pub struct Cli {
 pub enum Commands {
     #[command(about = "Initialize forge configuration")]
     Init,
-    #[command(about = "Create a backup of one or more git repositories")]
+    #[command(about = "Create a backup of one or more git repositories", alias = "quench")]
     Backup(BackupArgs),
     #[command(about = "Restore a repository from a backup archive")]
     Restore(RestoreArgs),
