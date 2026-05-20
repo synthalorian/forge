@@ -141,7 +141,10 @@ pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
                 ),
                 crate::theme::style_value(&format!("{:<10}", entry.branch_count), theme),
                 crate::theme::style_value(&format!("{:<6}", entry.tag_count), theme),
-                crate::theme::style_value(&format!("{:<12}", crate::utils::format_size(entry.size_bytes)), theme),
+                crate::theme::style_value(
+                    &format!("{:<12}", crate::utils::format_size(entry.size_bytes)),
+                    theme
+                ),
                 crate::theme::style_value(
                     &entry.created_at.format("%Y-%m-%d %H:%M").to_string(),
                     theme
@@ -211,7 +214,9 @@ pub fn show_status(cfg: &Config) -> Result<()> {
             .context("Failed to prepare per-repo status query")?;
 
         let repo_last: Vec<(String, String)> = stmt
-            .query_map([], |row| Ok((row.get("repo_name")?, row.get("last_backup")?)))
+            .query_map([], |row| {
+                Ok((row.get("repo_name")?, row.get("last_backup")?))
+            })
             .context("Failed to query per-repo status")?
             .collect::<rusqlite::Result<Vec<_>>>()
             .context("Failed to parse per-repo rows")?;
