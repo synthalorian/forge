@@ -39,19 +39,22 @@ pub struct Theme {
     pub progress_bar: ThemeColor,
 }
 
+/// Omarchy Synthwave84 — purple-first palette matching the desktop theme.
+/// Backgrounds: #0d0221 / #240037  |  Primary: #8f00ff  |  Magenta: #ff00ff
+/// Pink: #ff7edb  |  Cyan accent: #03edf9  |  Yellow: #f3e70f  |  Muted: #614d85
 pub const SYNTHWAVE84: Theme = Theme {
     name: "synthwave84",
-    header: ThemeColor::new(3, 237, 249),
-    accent: ThemeColor::new(0, 128, 255),
-    success: ThemeColor::new(131, 0, 255),
-    error: ThemeColor::new(255, 0, 64),
-    warning: ThemeColor::new(243, 231, 15),
-    info: ThemeColor::new(255, 126, 219),
-    muted: ThemeColor::new(97, 77, 133),
-    border: ThemeColor::new(97, 77, 133),
-    value: ThemeColor::new(255, 255, 255),
-    label: ThemeColor::new(3, 237, 249),
-    progress_bar: ThemeColor::new(255, 0, 255),
+    header: ThemeColor::new(143, 0, 255),       // electric purple — primary
+    accent: ThemeColor::new(255, 0, 255),      // magenta
+    success: ThemeColor::new(3, 237, 249),     // neon cyan
+    error: ThemeColor::new(255, 0, 64),        // red
+    warning: ThemeColor::new(243, 231, 15),    // yellow
+    info: ThemeColor::new(255, 126, 219),      // pink
+    muted: ThemeColor::new(97, 77, 133),       // muted purple
+    border: ThemeColor::new(143, 0, 255),      // purple border
+    value: ThemeColor::new(255, 255, 255),     // white values
+    label: ThemeColor::new(143, 0, 255),       // purple labels
+    progress_bar: ThemeColor::new(255, 0, 255), // magenta progress
 };
 
 pub const SYNTHWAVE_NIGHT: Theme = Theme {
