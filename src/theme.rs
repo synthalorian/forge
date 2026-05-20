@@ -1,7 +1,4 @@
-use colored::Color;
-use colored::Color::TrueColor;
-use colored::ColoredString;
-use colored::Colorize;
+use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ThemeColor {
@@ -15,11 +12,36 @@ impl ThemeColor {
         Self { r, g, b }
     }
 
-    fn to_color(self) -> Color {
-        TrueColor {
-            r: self.r,
-            g: self.g,
-            b: self.b,
+    /// Returns the raw ANSI 24-bit foreground escape sequence.
+    /// Bypasses the `colored` crate's TrueColor → ANSI 8-bit fallback.
+    fn fg_escape(self) -> String {
+        format!("\x1b[38;2;{};{};{}m", self.r, self.g, self.b)
+    }
+}
+
+/// A styled string that wraps text with raw 24-bit ANSI color codes.
+pub struct StyledString {
+    text: String,
+    color: ThemeColor,
+    bold: bool,
+}
+
+impl StyledString {
+    fn new(text: &str, color: ThemeColor, bold: bool) -> Self {
+        Self {
+            text: text.to_string(),
+            color,
+            bold,
+        }
+    }
+}
+
+impl fmt::Display for StyledString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.bold {
+            write!(f, "\x1b[1m{}{}\x1b[0m", self.color.fg_escape(), self.text)
+        } else {
+            write!(f, "{}{}\x1b[0m", self.color.fg_escape(), self.text)
         }
     }
 }
@@ -258,48 +280,48 @@ pub fn available_themes() -> Vec<&'static str> {
     ALL_THEMES.iter().map(|t| t.name).collect()
 }
 
-pub fn style_header(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.header.to_color())
+pub fn style_header(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.header, false)
 }
 
-pub fn style_success(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.success.to_color())
+pub fn style_success(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.success, false)
 }
 
-pub fn style_error(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.error.to_color())
+pub fn style_error(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.error, false)
 }
 
-pub fn style_warning(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.warning.to_color())
+pub fn style_warning(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.warning, false)
 }
 
-pub fn style_info(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.info.to_color())
+pub fn style_info(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.info, false)
 }
 
-pub fn style_accent(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.accent.to_color())
+pub fn style_accent(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.accent, false)
 }
 
-pub fn style_muted(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.muted.to_color())
+pub fn style_muted(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.muted, false)
 }
 
-pub fn style_label(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.label.to_color())
+pub fn style_label(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.label, false)
 }
 
-pub fn style_value(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.value.to_color())
+pub fn style_value(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.value, false)
 }
 
-pub fn style_border(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.border.to_color())
+pub fn style_border(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.border, false)
 }
 
-pub fn style_bold_header(text: &str, theme: &Theme) -> ColoredString {
-    text.color(theme.header.to_color()).bold()
+pub fn style_bold_header(text: &str, theme: &Theme) -> StyledString {
+    StyledString::new(text, theme.header, true)
 }
 
 pub fn theme_preview(theme: &Theme) -> String {
@@ -311,7 +333,7 @@ pub fn theme_preview(theme: &Theme) -> String {
         format!(
             "  {} {}",
             style_label("header:", theme),
-            style_header("Electric cyan text", theme)
+            style_header("Electric purple text", theme)
         ),
         format!(
             "  {} {}",
@@ -356,7 +378,7 @@ pub fn theme_preview(theme: &Theme) -> String {
         format!(
             "  {} {}",
             style_label("progress:", theme),
-            style_border("███", theme).color(theme.progress_bar.to_color())
+            StyledString::new("███", theme.progress_bar, false)
         ),
     ];
     lines.join("\n")
@@ -440,17 +462,71 @@ mod tests {
     fn style_functions_produce_output() {
         let theme = get_theme("synthwave84");
 
-        assert_eq!(style_header("Header", theme).to_string(), "Header");
-        assert_eq!(style_success("OK", theme).to_string(), "OK");
-        assert_eq!(style_error("FAIL", theme).to_string(), "FAIL");
-        assert_eq!(style_warning("WARN", theme).to_string(), "WARN");
-        assert_eq!(style_info("INFO", theme).to_string(), "INFO");
-        assert_eq!(style_accent("Accent", theme).to_string(), "Accent");
-        assert_eq!(style_muted("muted", theme).to_string(), "muted");
-        assert_eq!(style_label("label:", theme).to_string(), "label:");
-        assert_eq!(style_value("42", theme).to_string(), "42");
-        assert_eq!(style_border("---", theme).to_string(), "---");
-        assert_eq!(style_bold_header("BOLD", theme).to_string(), "BOLD");
+        // StyledString Display strips ANSI when checking plain text via to_string()
+        // But we verify the text content is preserved
+        let header = format!("{}", style_header("Header", theme));
+        assert!(header.contains("Header"));
+        assert!(header.contains("\x1b[")); // contains ANSI codes
+
+        let success = format!("{}", style_success("OK", theme));
+        assert!(success.contains("OK"));
+
+        let error = format!("{}", style_error("FAIL", theme));
+        assert!(error.contains("FAIL"));
+
+        let warning = format!("{}", style_warning("WARN", theme));
+        assert!(warning.contains("WARN"));
+
+        let info = format!("{}", style_info("INFO", theme));
+        assert!(info.contains("INFO"));
+
+        let accent = format!("{}", style_accent("Accent", theme));
+        assert!(accent.contains("Accent"));
+
+        let muted = format!("{}", style_muted("muted", theme));
+        assert!(muted.contains("muted"));
+
+        let label = format!("{}", style_label("label:", theme));
+        assert!(label.contains("label:"));
+
+        let value = format!("{}", style_value("42", theme));
+        assert!(value.contains("42"));
+
+        let border = format!("{}", style_border("---", theme));
+        assert!(border.contains("---"));
+
+        let bold = format!("{}", style_bold_header("BOLD", theme));
+        assert!(bold.contains("BOLD"));
+        assert!(bold.contains("\x1b[1m")); // bold escape
+    }
+
+    #[test]
+    fn style_functions_emit_24bit_truecolor() {
+        let theme = get_theme("synthwave84");
+
+        // Verify synthwave84 header emits 24-bit truecolor for #8f00ff (143, 0, 255)
+        let header = format!("{}", style_header("test", theme));
+        assert!(
+            header.contains("38;2;143;0;255"),
+            "Header should use truecolor #8f00ff, got: {:?}",
+            header
+        );
+
+        // Verify accent emits truecolor for #ff00ff (255, 0, 255)
+        let accent = format!("{}", style_accent("test", theme));
+        assert!(
+            accent.contains("38;2;255;0;255"),
+            "Accent should use truecolor #ff00ff, got: {:?}",
+            accent
+        );
+
+        // Verify success emits truecolor for #03edf9 (3, 237, 249)
+        let success = format!("{}", style_success("test", theme));
+        assert!(
+            success.contains("38;2;3;237;249"),
+            "Success should use truecolor #03edf9, got: {:?}",
+            success
+        );
     }
 
     #[test]

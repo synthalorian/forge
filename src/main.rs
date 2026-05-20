@@ -31,6 +31,9 @@ mod workshop;
 use cli::{Cli, Commands};
 
 fn main() -> Result<()> {
+    // Forge emits raw 24-bit ANSI truecolor — no crate dependency needed.
+    // Omarchy terminals (Kitty/Alacritty/Ghostty) all support truecolor.
+
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive("forge=info".parse()?))
         .init();
