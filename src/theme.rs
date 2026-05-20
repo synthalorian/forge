@@ -64,19 +64,21 @@ pub struct Theme {
 /// Omarchy Synthwave84 — purple-first palette matching the desktop theme.
 /// Backgrounds: #0d0221 / #240037  |  Primary: #8f00ff  |  Magenta: #ff00ff
 /// Pink: #ff7edb  |  Cyan accent: #03edf9  |  Yellow: #f3e70f  |  Muted: #614d85
+/// Omarchy Synthwave84 — purple-primary palette.
+/// Hierarchy: purple (primary) → cyan (secondary) → pink → yellow → red
 pub const SYNTHWAVE84: Theme = Theme {
     name: "synthwave84",
-    header: ThemeColor::new(143, 0, 255),       // electric purple — primary
-    accent: ThemeColor::new(255, 0, 255),      // magenta
-    success: ThemeColor::new(3, 237, 249),     // neon cyan
-    error: ThemeColor::new(255, 0, 64),        // red
-    warning: ThemeColor::new(243, 231, 15),    // yellow
-    info: ThemeColor::new(255, 126, 219),      // pink
-    muted: ThemeColor::new(97, 77, 133),       // muted purple
-    border: ThemeColor::new(143, 0, 255),      // purple border
-    value: ThemeColor::new(255, 255, 255),     // white values
-    label: ThemeColor::new(143, 0, 255),       // purple labels
-    progress_bar: ThemeColor::new(255, 0, 255), // magenta progress
+    header: ThemeColor::new(143, 0, 255),       // #8f00ff — electric purple (primary)
+    accent: ThemeColor::new(168, 85, 247),      // #a855f7 — lavender purple (secondary)
+    success: ThemeColor::new(3, 237, 249),      // #03edf9 — neon cyan
+    error: ThemeColor::new(255, 0, 64),         // #ff0040 — red
+    warning: ThemeColor::new(243, 231, 15),     // #f3e70f — yellow
+    info: ThemeColor::new(255, 126, 219),       // #ff7edb — pink
+    muted: ThemeColor::new(97, 77, 133),        // #614d85 — muted purple
+    border: ThemeColor::new(143, 0, 255),       // #8f00ff — purple border
+    value: ThemeColor::new(255, 255, 255),      // #ffffff — white values
+    label: ThemeColor::new(143, 0, 255),        // #8f00ff — purple labels
+    progress_bar: ThemeColor::new(168, 85, 247), // #a855f7 — lavender progress
 };
 
 pub const SYNTHWAVE_NIGHT: Theme = Theme {
@@ -512,11 +514,11 @@ mod tests {
             header
         );
 
-        // Verify accent emits truecolor for #ff00ff (255, 0, 255)
+        // Verify accent emits truecolor for #a855f7 (168, 85, 247) — lavender purple
         let accent = format!("{}", style_accent("test", theme));
         assert!(
-            accent.contains("38;2;255;0;255"),
-            "Accent should use truecolor #ff00ff, got: {:?}",
+            accent.contains("38;2;168;85;247"),
+            "Accent should use truecolor #a855f7, got: {:?}",
             accent
         );
 
