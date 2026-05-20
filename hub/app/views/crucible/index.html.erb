@@ -2,41 +2,209 @@
   <span class="text-text-primary">Crucible</span>
 <% end %>
 
-<div class="space-y-8 max-w-6xl">
+<% content_for :head do %>
+  <meta name="turbo-refresh-method" content="morph">
+<% end %>
+
+<div class="space-y-8 max-w-6xl" data-controller="crucible">
   <div>
     <div class="flex items-center gap-3">
       <span class="text-neon-red text-3xl">⬡</span>
       <div>
         <h1 class="text-2xl font-bold text-neon-red font-mono tracking-tight">CRUCIBLE</h1>
-        <p class="text-text-muted text-sm mt-0.5">Creative tools — where raw material becomes something beautiful</p>
+        <p class="text-text-muted text-sm mt-0.5">Creative tools — forge melt, palette, chords, diagrams</p>
       </div>
     </div>
   </div>
 
-  <div class="rounded-xl bg-bg-panel border border-border-faint p-8 text-center">
-    <span class="text-4xl text-neon-red/40 mb-4 block">⬡</span>
-    <h2 class="text-xl font-bold text-text-primary mb-2">The Crucible is Heating Up</h2>
-    <p class="text-text-muted max-w-md mx-auto mb-6">
-      Creative tools for music theory, color palettes, diagrams, and more. Currently in the design phase.
-    </p>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-2xl mx-auto text-left">
-      <% features = [
-        { cmd: "forge melt chords <key>", desc: "Chord progressions" },
-        { cmd: "forge melt palette", desc: "Color palette generation" },
-        { cmd: "forge melt diagram", desc: "ASCII/SVG diagrams" },
-        { cmd: "forge melt image", desc: "Image generation bridge" },
-        { cmd: "forge melt markdown", desc: "Markdown authoring" },
-        { cmd: "forge melt chords suggest", desc: "Mood-based suggestions" }
-      ] %>
-      <% features.each do |f| %>
-        <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
-          <code class="text-xs text-neon-cyan font-mono"><%= f[:cmd] %></code>
-          <p class="text-xs text-text-muted mt-1"><%= f[:desc] %></p>
-        </div>
-      <% end %>
+  <% unless @forge_available %>
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-8 text-center">
+      <span class="text-4xl text-neon-red/40 mb-4 block">⬡</span>
+      <h2 class="text-xl font-bold text-text-primary mb-2">Forge CLI Not Detected</h2>
+      <p class="text-text-muted max-w-md mx-auto mb-6">
+        The Crucible bridges to the Forge CLI's <code class="text-neon-cyan">forge melt</code> commands.
+        Install Forge first to unlock creative tools.
+      </p>
+      <div class="bg-bg-surface/50 rounded-lg p-4 max-w-lg mx-auto text-left">
+        <code class="text-xs text-neon-cyan font-mono block">
+          curl -sL https://github.com/synthalorian/forge/releases/latest/download/forge \<br>
+          &nbsp;&nbsp;-o ~/.local/bin/forge && chmod +x ~/.local/bin/forge && forge init
+        </code>
+      </div>
+    </div>
+  <% else %>
+    <!-- Tab navigation -->
+    <div class="flex gap-1 border-b border-border-faint" data-controller="tabs" data-tabs-active-class="text-neon-cyan border-b-2 border-neon-cyan">
+      <button data-action="click->tabs#select" data-tabs-target="tab" data-tab="chords"
+              class="px-4 py-2.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors
+                     border-b-2 border-transparent -mb-px text-neon-cyan border-b-2 border-neon-cyan">
+        ⚬ Chords
+      </button>
+      <button data-action="click->tabs#select" data-tabs-target="tab" data-tab="palette"
+              class="px-4 py-2.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors
+                     border-b-2 border-transparent -mb-px">
+        ◈ Palette
+      </button>
+      <button data-action="click->tabs#select" data-tabs-target="tab" data-tab="diagram"
+              class="px-4 py-2.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors
+                     border-b-2 border-transparent -mb-px">
+        ⧉ Diagram
+      </button>
     </div>
 
-    <p class="text-xs text-text-dim mt-6 font-mono uppercase tracking-widest">Coming in forge v0.3+</p>
-  </div>
+    <!-- === CHORDS TAB === -->
+    <div data-tabs-target="panel" data-tab="chords" class="space-y-6">
+      <div class="rounded-xl bg-bg-panel border border-border-faint p-6">
+        <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Chord Progression Generator</h3>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <% @chord_examples.each do |ex| %>
+            <%= form_tag crucible_chords_path, method: :post, data: { turbo: true },
+                class: "inline-block" do %>
+              <%= hidden_field_tag :key, ex[:key] %>
+              <%= hidden_field_tag :scale, ex[:scale] %>
+              <%= submit_tag ex[:label],
+                  class: "w-full px-4 py-2.5 rounded-lg text-sm font-mono font-medium cursor-pointer
+                         bg-bg-surface border border-border-faint text-text-primary
+                         hover:border-neon-red/50 hover:bg-bg-surface/80
+                         transition-all duration-200" %>
+            <% end %>
+          <% end %>
+        </div>
+
+        <details class="group">
+          <summary class="text-sm text-text-muted cursor-pointer hover:text-text-primary transition-colors select-none">
+            Custom key/scale
+          </summary>
+          <div class="mt-4">
+            <%= form_tag crucible_chords_path, method: :post, data: { turbo: true },
+                class: "flex flex-wrap items-end gap-3" do %>
+              <div>
+                <label class="block text-xs text-text-dim mb-1 font-mono">Key</label>
+                <%= text_field_tag :key, "C",
+                    class: "w-20 px-3 py-2 rounded-lg bg-bg-surface border border-border-faint
+                           text-sm font-mono text-text-primary placeholder-text-dim
+                           focus:outline-none focus:border-neon-red/50" %>
+              </div>
+              <div>
+                <label class="block text-xs text-text-dim mb-1 font-mono">Scale</label>
+                <%= select_tag :scale,
+                    options_for_select(%w[major minor dorian phrygian lydian mixolydian aeolian locrian]),
+                    class: "px-3 py-2 rounded-lg bg-bg-surface border border-border-faint
+                           text-sm font-mono text-text-primary
+                           focus:outline-none focus:border-neon-red/50" %>
+              </div>
+              <div>
+                <label class="block text-xs text-text-dim mb-1 font-mono">Mood (optional)</label>
+                <%= text_field_tag :mood, nil, placeholder: "e.g. dark, uplifting, ambient",
+                    class: "w-44 px-3 py-2 rounded-lg bg-bg-surface border border-border-faint
+                           text-sm font-mono text-text-primary placeholder-text-dim
+                           focus:outline-none focus:border-neon-red/50" %>
+              </div>
+              <%= submit_tag "Generate",
+                  class: "px-5 py-2 rounded-lg bg-neon-red/20 border border-neon-red/40
+                         text-neon-red text-sm font-mono font-semibold cursor-pointer
+                         hover:bg-neon-red/30 transition-all duration-200" %>
+            <% end %>
+          </div>
+        </details>
+      </div>
+
+      <div id="crucible-output" class="rounded-xl bg-bg-panel border border-border-faint p-6">
+        <div class="text-center py-8 text-text-dim">
+          <p class="text-sm font-mono">Select a chord progression above to see the result</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- === PALETTE TAB === -->
+    <div data-tabs-target="panel" data-tab="palette" class="space-y-6" style="display:none">
+      <div class="rounded-xl bg-bg-panel border border-border-faint p-6">
+        <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Color Palette Generator</h3>
+
+        <div class="mb-6">
+          <% if @palette_example.present? %>
+            <div class="bg-bg-surface rounded-lg p-4 border border-border-faint mb-4">
+              <p class="text-xs text-text-dim mb-2 font-mono">Example palette (complementary to #FF6B9D):</p>
+              <pre class="text-xs text-neon-cyan font-mono whitespace-pre-wrap"><%= @palette_example %></pre>
+            </div>
+          <% end %>
+        </div>
+
+        <%= form_tag crucible_palette_path, method: :post, data: { turbo: true },
+            class: "flex flex-wrap items-end gap-3" do %>
+          <div>
+            <label class="block text-xs text-text-dim mb-1 font-mono">Base Color</label>
+            <%= text_field_tag :color, "#8f00ff",
+                class: "w-28 px-3 py-2 rounded-lg bg-bg-surface border border-border-faint
+                       text-sm font-mono text-text-primary placeholder-text-dim
+                       focus:outline-none focus:border-neon-red/50" %>
+          </div>
+          <div>
+            <label class="block text-xs text-text-dim mb-1 font-mono">Harmony</label>
+            <%= select_tag :harmony,
+                options_for_select(%w[complementary analogous triadic tetradic monochromatic split-complementary]),
+                class: "px-3 py-2 rounded-lg bg-bg-surface border border-border-faint
+                       text-sm font-mono text-text-primary
+                       focus:outline-none focus:border-neon-red/50" %>
+          </div>
+          <div>
+            <label class="block text-xs text-text-dim mb-1 font-mono">Format</label>
+            <%= select_tag :format,
+                options_for_select([["Terminal", "terminal"], ["CSS", "css"], ["Tailwind", "tailwind"]]),
+                class: "px-3 py-2 rounded-lg bg-bg-surface border border-border-faint
+                       text-sm font-mono text-text-primary
+                       focus:outline-none focus:border-neon-red/50" %>
+          </div>
+          <%= submit_tag "Generate Palette",
+              class: "px-5 py-2 rounded-lg bg-neon-red/20 border border-neon-red/40
+                     text-neon-red text-sm font-mono font-semibold cursor-pointer
+                     hover:bg-neon-red/30 transition-all duration-200" %>
+        <% end %>
+      </div>
+
+      <div id="crucible-output" class="rounded-xl bg-bg-panel border border-border-faint p-6">
+        <div class="text-center py-8 text-text-dim">
+          <p class="text-sm font-mono">Generate a palette above to see the result</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- === DIAGRAM TAB === -->
+    <div data-tabs-target="panel" data-tab="diagram" class="space-y-6" style="display:none">
+      <div class="rounded-xl bg-bg-panel border border-border-faint p-6">
+        <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Diagram Generator</h3>
+
+        <%= form_tag crucible_diagram_path, method: :post, data: { turbo: true },
+            class: "space-y-4" do %>
+          <div>
+            <label class="block text-xs text-text-dim mb-1 font-mono">Type</label>
+            <%= select_tag :type,
+                options_for_select([["Flow", "flow"], ["Architecture", "architecture"], ["Sequence", "sequence"], ["Network", "network"], ["ASCII Art", "ascii"]]),
+                class: "w-full px-3 py-2 rounded-lg bg-bg-surface border border-border-faint
+                       text-sm font-mono text-text-primary
+                       focus:outline-none focus:border-neon-red/50" %>
+          </div>
+          <div>
+            <label class="block text-xs text-text-dim mb-1 font-mono">Description</label>
+            <%= text_area_tag :description, nil, rows: 3,
+                placeholder: "Describe the diagram you want — e.g. 'client-server architecture with load balancer, 3 app servers, and a Postgres primary-replica pair'",
+                class: "w-full px-3 py-2 rounded-lg bg-bg-surface border border-border-faint
+                       text-sm font-mono text-text-primary placeholder-text-dim
+                       focus:outline-none focus:border-neon-red/50" %>
+          </div>
+          <%= submit_tag "Generate Diagram",
+              class: "px-5 py-2 rounded-lg bg-neon-red/20 border border-neon-red/40
+                     text-neon-red text-sm font-mono font-semibold cursor-pointer
+                     hover:bg-neon-red/30 transition-all duration-200" %>
+        <% end %>
+      </div>
+
+      <div id="crucible-output" class="rounded-xl bg-bg-panel border border-border-faint p-6">
+        <div class="text-center py-8 text-text-dim">
+          <p class="text-sm font-mono">Generate a diagram above to see the result</p>
+        </div>
+      </div>
+    </div>
+  <% end %>
 </div>
