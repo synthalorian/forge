@@ -1,0 +1,25 @@
+<% content_for :breadcrumb do %>
+  <span class="text-text-primary">Anvil</span>
+<% end %>
+
+<div class="max-w-2xl mx-auto py-16 text-center">
+  <span class="text-5xl text-text-dim mb-6 block">🔧</span>
+  <h1 class="text-2xl font-bold text-text-primary mb-2">Forge Database Not Found</h1>
+  <p class="text-text-muted mb-6">
+    Forge Hub couldn't find the forge database at
+    <code class="text-xs font-mono text-neon-cyan bg-bg-dark/50 px-2 py-0.5 rounded"><%= Forge::Config.db_path %></code>
+  </p>
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-6 text-left space-y-3">
+    <p class="text-sm text-text-primary font-medium">To get started:</p>
+    <ol class="text-sm text-text-muted space-y-2 list-decimal list-inside">
+      <li>Install forge CLI: <code class="text-xs font-mono text-neon-cyan">curl -sSf https://forge.sh/install | sh</code></li>
+      <li>Create a backup: <code class="text-xs font-mono text-neon-cyan">forge quench /path/to/project</code></li>
+      <li>Refresh this page</li>
+    </ol>
+  </div>
+  <%= link_to "/",
+      class: "mt-6 inline-flex px-4 py-2 rounded-lg bg-neon-cyan/10 text-neon-cyan
+              border border-neon-cyan/30 hover:bg-neon-cyan/20 transition-colors text-sm font-medium" do %>
+    ← Back to Dashboard
+  <% end %>
+</div>

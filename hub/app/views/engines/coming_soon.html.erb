@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= pillar_name %> | Forge</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(180deg, #1a0a2e 0%, #0d0618 50%, #1a0a2e 100%);
+      min-height: 100vh;
+      color: #e0e0ff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 80px 20px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 8px 20px;
+      background: linear-gradient(135deg, #ff6b35, #ff9f1c);
+      color: #1a0a2e;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 24px;
+      box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+    }
+
+    .header {
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: 48px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ff6b35 0%, #ff9f1c 50%, #ff00ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      filter: drop-shadow(0 0 30px rgba(255, 107, 53, 0.5));
+      letter-spacing: 2px;
+    }
+
+    .tagline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      color: #ff9f1c;
+      margin-top: 12px;
+      text-shadow: 0 0 10px rgba(255, 159, 28, 0.5);
+    }
+
+    .description {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #a0a0c0;
+      margin-bottom: 40px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .version-req {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 24px;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 4px;
+      color: #00f0ff;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 48px;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+    }
+
+    .features {
+      background: rgba(26, 10, 46, 0.8);
+      border: 1px solid rgba(255, 0, 255, 0.2);
+      border-radius: 8px;
+      padding: 32px;
+      margin-bottom: 48px;
+      box-shadow: 0 0 40px rgba(255, 0, 255, 0.1), inset 0 0 60px rgba(0, 240, 255, 0.03);
+    }
+
+    .features h2 {
+      font-size: 14px;
+      color: #00f0ff;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      font-weight: 700;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: rgba(0, 240, 255, 0.05);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 6px;
+      padding: 20px;
+      transition: all 0.3s ease;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .feature-card:hover {
+      border-color: #ff00ff;
+      box-shadow: 0 0 25px rgba(255, 0, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .feature-cmd {
+      font-size: 14px;
+      color: #00f0ff;
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: #8080a0;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #00f0ff;
+      text-decoration: none;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 12px 24px;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: #ff00ff;
+      border-color: #ff00ff;
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+    }
+
+    .neon-glow {
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(ellipse, rgba(0, 240, 255, 0.06) 0%, rgba(255, 0, 255, 0.03) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .grid-lines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: -2;
+    }
+
+    .scan-line {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent);
+      animation: scan 4s linear infinite;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    @keyframes scan {
+      0% { top: -2px; }
+      100% { top: 100vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-lines"></div>
+  <div class="neon-glow"></div>
+  <div class="scan-line"></div>
+
+  <div class="container">
+    <span class="badge">Coming Soon</span>
+
+    <div class="header">
+      <h1><%= pillar_name %></h1>
+      <p class="tagline">// <%= tagline %></p>
+    </div>
+
+    <p class="description"><%= description %></p>
+
+    <div class="version-req">
+      <span>⚡</span>
+      <span>Requires forge CLI <%= version_requirement %></span>
+    </div>
+
+    <div class="features">
+      <h2>// Features</h2>
+      <div class="features-grid">
+        <% features.each do |feature| %>
+          <div class="feature-card">
+            <div class="feature-cmd"><%= feature[:cmd] %></div>
+            <div class="feature-desc"><%= feature[:desc] %></div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <a href="/" class="back-link">
+      ← Back to Dashboard
+    </a>
+  </div>
+</body>
+</html>

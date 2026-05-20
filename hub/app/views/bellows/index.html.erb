@@ -1,0 +1,99 @@
+<% content_for :breadcrumb do %>
+  <span class="text-text-primary">Bellows</span>
+<% end %>
+
+<div class="space-y-8 max-w-6xl">
+  <div>
+    <div class="flex items-center gap-3">
+      <span class="text-neon-purple text-3xl">◇</span>
+      <div>
+        <h1 class="text-2xl font-bold text-neon-purple font-mono tracking-tight">BELLOWS</h1>
+        <p class="text-text-muted text-sm mt-0.5">AI agent orchestration harness</p>
+      </div>
+    </div>
+  </div>
+
+  <% running = @agents.count { |a| a[:status] == "running" } %>
+  <% installed = @agents.count { |a| a[:status] != "not_installed" } %>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <%= stat_card label: "Agents Available", value: installed, icon: "◇",
+        icon_color: "text-neon-purple" %>
+    <%= stat_card label: "Currently Running", value: running, icon: "●",
+        icon_color: "text-neon-green" %>
+    <%= stat_card label: "Priority Agent",
+        value: (@agents.find { |a| a[:status] == "running" } || @agents.find { |a| a[:status] != "not_installed" })&.dig(:name) || "None",
+        icon: "⚡",
+        icon_color: "text-neon-pink" %>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <% @agents.each do |agent| %>
+      <div class="rounded-xl bg-bg-panel border border-border-faint p-5
+                  <%= agent[:status] == "running" ? "border-neon-green/20" : "" %>">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <% status_dot = case agent[:status]
+               when "running" then "bg-neon-green animate-pulse"
+               when "stopped" then "bg-neon-yellow"
+               else "bg-text-dim"
+               end %>
+            <span class="w-2.5 h-2.5 rounded-full <%= status_dot %> shrink-0"></span>
+            <span class="text-sm font-semibold font-mono text-text-primary"><%= agent[:name] %></span>
+          </div>
+          <span class="text-xs font-mono uppercase tracking-wider
+                       <%= case agent[:status]
+                           when "running" then "text-neon-green"
+                           when "stopped" then "text-neon-yellow"
+                           else "text-text-dim"
+                           end %>">
+            <%= agent[:status].tr("_", " ") %>
+          </span>
+        </div>
+        <div class="flex items-center gap-4 text-xs text-text-muted">
+          <span class="bg-bg-surface/50 px-2 py-0.5 rounded font-mono border border-border-faint"><%= agent[:type] %></span>
+          <% if agent[:model] %>
+            <span><%= agent[:model] %></span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+    <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Commands</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <% commands = [
+        { cmd: "forge breathe", desc: "Agent status dashboard" },
+        { cmd: "forge strike <task>", desc: "Execute task via AI" },
+        { cmd: "forge breathe models", desc: "List available models" },
+        { cmd: "forge breathe vault", desc: "Credential management" },
+        { cmd: "forge breathe prompts", desc: "Prompt library" },
+        { cmd: "forge breathe pipe", desc: "Agent pipelines" }
+      ] %>
+      <% commands.each do |cmd| %>
+        <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
+          <code class="text-xs text-neon-cyan font-mono"><%= cmd[:cmd] %></code>
+          <p class="text-xs text-text-muted mt-1"><%= cmd[:desc] %></p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+    <h3 class="text-sm font-semibold text-text-primary mb-3 uppercase tracking-wider">Agent Priority</h3>
+    <div class="flex items-center gap-2 flex-wrap">
+      <% priority = ["opencode", "llama-swap", "hermes", "codex"] %>
+      <% priority.each_with_index do |name, i| %>
+        <% if i > 0 %>
+          <span class="text-text-dim text-xs">→</span>
+        <% end %>
+        <span class="px-3 py-1.5 rounded-lg text-xs font-mono
+                     <%= i == 0 ? "bg-neon-purple/20 text-neon-purple border border-neon-purple/30" : "bg-bg-surface/50 text-text-muted border border-border-faint" %>">
+          <%= i + 1 %>. <%= name %>
+        </span>
+      <% end %>
+    </div>
+    <p class="text-xs text-text-muted mt-3">Forge routes tasks to the highest-priority running agent. Local agents preferred over remote.</p>
+  </div>
+</div>
