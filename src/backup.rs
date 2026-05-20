@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -57,7 +56,7 @@ fn run_all(cfg: &Config, compression: u32) -> Result<()> {
                     crate::theme::style_success("✓", theme),
                     crate::theme::style_accent(&info.repo_name, theme),
                     crate::theme::style_muted("—", theme),
-                    crate::theme::style_value(&format_size(info.size_bytes), theme),
+                    crate::theme::style_value(&crate::utils::format_size(info.size_bytes), theme),
                     crate::theme::style_value(&info.branch_count.to_string(), theme),
                     crate::theme::style_muted("branches", theme),
                     crate::theme::style_value(&info.tag_count.to_string(), theme),
@@ -113,7 +112,7 @@ fn run_single(cfg: &Config, repo_path: &Path, compression: u32) -> Result<()> {
         crate::theme::style_success("✓", theme),
         crate::theme::style_muted("Backed up", theme),
         crate::theme::style_accent(&info.repo_name, theme),
-        crate::theme::style_value(&format_size(info.size_bytes), theme),
+        crate::theme::style_value(&crate::utils::format_size(info.size_bytes), theme),
         crate::theme::style_value(&info.branch_count.to_string(), theme),
         crate::theme::style_muted("branches", theme),
         crate::theme::style_value(&info.tag_count.to_string(), theme),
@@ -185,14 +184,10 @@ fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<Backu
         captured_at: chrono::Utc::now(),
     };
 
-    let tmp_dir =
-        std::env::temp_dir().join(format!("forge-bare-{}-{}", repo_name, std::process::id(),));
+    let temp_dir = tempfile::tempdir()
+        .with_context(|| format!("Failed to create temp dir for {}", repo_name))?;
 
-    let _ = fs::remove_dir_all(&tmp_dir);
-    fs::create_dir_all(&tmp_dir)
-        .with_context(|| format!("Failed to create temp dir {}", tmp_dir.display()))?;
-
-    let bare_path = tmp_dir.join(format!("{}.git", repo_name));
+    let bare_path = temp_dir.path().join(format!("{}.git", repo_name));
     let bare_str = bare_path.to_str().context("Temp path is not valid UTF-8")?;
 
     let clone_status = std::process::Command::new("git")
@@ -203,7 +198,6 @@ fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<Backu
         .context("Failed to spawn git clone --bare")?;
 
     if !clone_status.success() {
-        let _ = fs::remove_dir_all(&tmp_dir);
         anyhow::bail!(
             "git clone --bare failed with exit code {:?}",
             clone_status.code(),
@@ -213,9 +207,7 @@ fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<Backu
     let dedup_result = crate::archive::create_dedup_archive(cfg, bare_str, compression)
         .with_context(|| format!("Failed to create dedup archive for {}", bare_path.display()))?;
 
-    if let Err(e) = fs::remove_dir_all(&tmp_dir) {
-        tracing::warn!("Failed to clean up {}: {}", tmp_dir.display(), e);
-    }
+    drop(temp_dir);
 
     let conn = crate::db::connect(cfg)?;
     let entry = BackupEntry {
@@ -395,19 +387,4 @@ fn discover_repos(cfg: &Config) -> Result<Vec<PathBuf>> {
     }
 
     Ok(repos)
-}
-
-fn format_size(bytes: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = KB * 1024;
-    const GB: u64 = MB * 1024;
-    if bytes >= GB {
-        format!("{:.1} GB", bytes as f64 / GB as f64)
-    } else if bytes >= MB {
-        format!("{:.1} MB", bytes as f64 / MB as f64)
-    } else if bytes >= KB {
-        format!("{:.1} KB", bytes as f64 / KB as f64)
-    } else {
-        format!("{bytes} B")
-    }
 }

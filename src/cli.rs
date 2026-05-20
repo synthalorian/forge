@@ -28,6 +28,12 @@ pub enum Commands {
     Theme(ThemeArgs),
     #[command(about = "Show backup status and statistics")]
     Status,
+    #[command(about = "Scripture & study")]
+    Word(WordArgs),
+    #[command(about = "Prayer journal")]
+    Reflect(ReflectArgs),
+    #[command(about = "Sabbath mode — shut it all down")]
+    Rest,
 }
 
 #[derive(Args)]
@@ -107,5 +113,58 @@ pub enum ThemeAction {
     Set {
         #[arg(help = "Name of the theme to activate")]
         name: String,
+    },
+}
+
+#[derive(Args)]
+pub struct WordArgs {
+    #[command(subcommand)]
+    pub action: Option<WordAction>,
+}
+
+#[derive(Subcommand)]
+pub enum WordAction {
+    #[command(about = "Today's verse (default if no subcommand)")]
+    Daily,
+    #[command(about = "Search scripture")]
+    Search {
+        #[arg(help = "Search query")]
+        query: String,
+    },
+    #[command(about = "Look up a passage")]
+    Reference {
+        #[arg(help = "Book name")]
+        book: String,
+        #[arg(short, long, help = "Chapter number")]
+        chapter: Option<u32>,
+        #[arg(short, long, help = "Verse number")]
+        verse: Option<u32>,
+    },
+}
+
+#[derive(Args)]
+pub struct ReflectArgs {
+    #[command(subcommand)]
+    pub action: Option<ReflectAction>,
+}
+
+#[derive(Subcommand)]
+pub enum ReflectAction {
+    #[command(about = "Write a journal entry")]
+    Entry {
+        #[arg(help = "Journal entry text")]
+        text: String,
+    },
+    #[command(about = "Browse past entries")]
+    History,
+    #[command(about = "Read a specific entry")]
+    Read {
+        #[arg(help = "Entry ID")]
+        id: i64,
+    },
+    #[command(about = "Search entries")]
+    Search {
+        #[arg(help = "Search query")]
+        query: String,
     },
 }

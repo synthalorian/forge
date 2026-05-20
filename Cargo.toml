@@ -2,11 +2,11 @@
 name = "forge"
 version = "0.1.0"
 edition = "2021"
-description = "Local git backup & project archive CLI — Time Machine for code"
+description = "Craft Your Digital Future — Git backup, AI agents, scripture, themes & system tools"
 license = "Apache-2.0"
-authors = ["synth <synthalorian>"]
+authors = ["synthalorian"]
 readme = "README.md"
-keywords = ["git", "backup", "archive", "cli"]
+keywords = ["git", "backup", "cli", "ai-agents", "scripture", "themes"]
 categories = ["command-line-utilities", "development-tools"]
 repository = "https://github.com/synthalorian/forge"
 
@@ -58,6 +58,14 @@ dirs = "6"
 
 # Terminal colors
 colored = "3"
+
+# Temporary directories
+tempfile = "3"
+
+# Phase 2A — Spirit module
+regex = "1"
+aes-gcm = "0.10"
+rand = "0.8"
 
 [dev-dependencies]
 tempfile = "3"

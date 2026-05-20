@@ -16,6 +16,10 @@ mod restore;
 mod scheduler;
 mod theme;
 mod theme_cmd;
+mod utils;
+mod spirit;
+mod reflect;
+mod spirit_cmd;
 
 use cli::{Cli, Commands};
 
@@ -61,6 +65,18 @@ fn main() -> Result<()> {
         Commands::Status => {
             let cfg = config::Config::load()?;
             db::show_status(&cfg)?;
+        }
+        Commands::Word(args) => {
+            let cfg = config::Config::load()?;
+            spirit_cmd::run_word(&cfg, &args)?;
+        }
+        Commands::Reflect(args) => {
+            let cfg = config::Config::load()?;
+            spirit_cmd::run_reflect(&cfg, &args)?;
+        }
+        Commands::Rest => {
+            let cfg = config::Config::load()?;
+            spirit_cmd::run_rest(&cfg)?;
         }
     }
 
