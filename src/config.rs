@@ -3,6 +3,12 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+fn default_llama_swap_config() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("/tmp"))
+        .join("llama.cpp/llama-swap/config.yaml")
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub archive_dir: PathBuf,
@@ -11,6 +17,8 @@ pub struct Config {
     pub repo_paths: Vec<String>,
     pub retention: RetentionConfig,
     pub theme: String,
+    #[serde(default = "default_llama_swap_config")]
+    pub llama_swap_config: PathBuf,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -37,6 +45,7 @@ impl Default for Config {
                 keep_monthly: 12,
             },
             theme: "synthwave84".to_string(),
+            llama_swap_config: default_llama_swap_config(),
         }
     }
 }
@@ -122,6 +131,7 @@ mod tests {
                 keep_monthly: 24,
             },
             theme: "dracula".to_string(),
+            llama_swap_config: PathBuf::from("/home/user/llama.cpp/llama-swap/config.yaml"),
         };
 
         let toml_str = toml::to_string_pretty(&original).context("serialize")?;
@@ -135,6 +145,7 @@ mod tests {
         assert_eq!(parsed.retention.keep_weekly, 8);
         assert_eq!(parsed.retention.keep_monthly, 24);
         assert_eq!(parsed.theme, "dracula");
+        assert_eq!(parsed.llama_swap_config, original.llama_swap_config);
 
         Ok(())
     }

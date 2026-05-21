@@ -489,6 +489,7 @@ mod tests {
                 keep_monthly: 12,
             },
             theme: "synthwave84".to_string(),
+            llama_swap_config: tmp.path().join("llama-swap-config.yaml"),
         }
     }
 
@@ -540,7 +541,7 @@ mod tests {
         let id = insert_backup(&conn, &entry)?;
         assert_eq!(id, 1);
 
-        let fetched = get_backup_by_id(&conn, "1")?.expect("backup 1");
+        let fetched = get_backup_by_id(&conn, "1")?.expect("test: should fetch backup by id '1'");
         assert_eq!(fetched.repo_name, "test-repo");
         assert_eq!(fetched.repo_path, "/tmp/test-repo");
         assert_eq!(fetched.branch_count, 2);
@@ -562,7 +563,7 @@ mod tests {
         entry.backup_type = BackupType::Incremental;
         insert_backup(&conn, &entry)?;
 
-        let fetched = get_backup_by_id(&conn, "1")?.expect("backup 1");
+        let fetched = get_backup_by_id(&conn, "1")?.expect("test: should fetch incremental backup by id '1'");
         assert_eq!(fetched.backup_type, BackupType::Incremental);
 
         Ok(())
@@ -577,7 +578,7 @@ mod tests {
         let entry = sample_backup_entry();
         insert_backup(&conn, &entry)?;
 
-        let fetched = get_backup_by_id(&conn, "test-repo")?.expect("by name");
+        let fetched = get_backup_by_id(&conn, "test-repo")?.expect("test: should fetch backup by name 'test-repo'");
         assert_eq!(fetched.repo_name, "test-repo");
 
         Ok(())

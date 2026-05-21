@@ -85,7 +85,7 @@ class BridgeController < ApplicationController
         hint: which?("zstd") ? nil : "Install zstd" },
       { name: "OpenCode", available: which?("opencode"), type: "agent", icon: "⚡",
         hint: which?("opencode") ? nil : "Install opencode" },
-      { name: "llama-swap", available: File.exist?(ENV["LLAMA_SWAP_CONFIG"] || File.expand_path("~/llama.cpp/llama-swap/config.yaml")),
+      { name: "llama-swap", available: File.exist?(Forge::Config.llama_swap_config_path),
         type: "agent", icon: "\U0001f999",
         hint: "Local model server" },
       { name: "Hermes", available: which?("hermes"), type: "agent", icon: "使者",

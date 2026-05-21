@@ -34,7 +34,7 @@ fn run_status(cfg: &Config) -> Result<()> {
         ("OpenCode", which_exists("opencode")),
         (
             "llama-swap",
-            std::path::Path::new(&std::env::var("LLAMA_SWAP_CONFIG").unwrap_or_else(|_| "/home/synth/llama.cpp/llama-swap/config.yaml".to_string())).exists(),
+            cfg.llama_swap_config.exists(),
         ),
         ("Hermes", which_exists("hermes")),
         ("Codex CLI", which_exists("codex")),

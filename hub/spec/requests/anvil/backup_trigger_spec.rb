@@ -63,8 +63,10 @@ RSpec.describe "Anvil::BackupTrigger", type: :request do
       path = create_db
       ENV["FORGE_DB_PATH"] = path
 
-      allow(Rails.cache).to receive(:read).and_call_original
-      allow(Rails.cache).to receive(:read).with("forge_backup_running").and_return(true)
+      allow(Rails.cache).to receive(:write).and_call_original
+      allow(Rails.cache).to receive(:write)
+        .with("forge_backup_running", true, hash_including(unless_exist: true))
+        .and_return(false)
 
       post "/anvil/backups/trigger"
       expect(response).to redirect_to(anvil_backups_path)

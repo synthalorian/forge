@@ -70,10 +70,12 @@ pub struct RoutingResult {
 
 /// Resolve llama-swap config path from env or default.
 fn llama_swap_config_path() -> std::path::PathBuf {
-    std::path::PathBuf::from(
-        std::env::var("LLAMA_SWAP_CONFIG")
-            .unwrap_or_else(|_| "/home/synth/llama.cpp/llama-swap/config.yaml".to_string())
-    )
+    if let Ok(path) = std::env::var("LLAMA_SWAP_CONFIG") {
+        return std::path::PathBuf::from(path);
+    }
+    dirs::home_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
+        .join("llama.cpp/llama-swap/config.yaml")
 }
 const HERMES_AUTH_PATH: &str = ".hermes/auth.json";
 

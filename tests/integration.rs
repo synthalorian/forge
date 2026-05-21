@@ -15,6 +15,7 @@ fn test_config(tmp: &TempDir) -> forge::config::Config {
             keep_monthly: 12,
         },
         theme: "synthwave84".to_string(),
+        llama_swap_config: tmp.path().join("llama-swap-config.yaml"),
     }
 }
 

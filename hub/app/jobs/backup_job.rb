@@ -4,11 +4,9 @@ class BackupJob < ApplicationJob
   queue_as :default
 
   def perform(path: nil, job_id: self.job_id)
-    if Rails.cache.read("forge_backup_running")
+    unless Rails.cache.write("forge_backup_running", true, unless_exist: true, expires_in: 10.minutes)
       raise "Backup already in progress"
     end
-
-    Rails.cache.write("forge_backup_running", true, expires_in: 10.minutes)
     broadcast_status(job_id, "running", "Starting backup...")
 
     binary = Forge::Client.new.bin_path

@@ -361,11 +361,11 @@ mod tests {
 
     fn test_config_with_bible_db(tmp: &TempDir) -> Config {
         let data_dir = tmp.path().join("forge");
-        std::fs::create_dir_all(data_dir.join("data")).unwrap();
+        std::fs::create_dir_all(data_dir.join("data")).expect("failed to create test data dir");
 
         let resource = bible_db_resource_path();
         if resource.exists() {
-            std::fs::copy(&resource, data_dir.join("data/bible.db")).unwrap();
+            std::fs::copy(&resource, data_dir.join("data/bible.db")).expect("failed to copy test bible.db");
         }
 
         Config {
@@ -379,6 +379,7 @@ mod tests {
                 keep_monthly: 12,
             },
             theme: "synthwave84".to_string(),
+            llama_swap_config: tmp.path().join("llama-swap-config.yaml"),
         }
     }
 
@@ -607,7 +608,7 @@ mod tests {
     fn test_parse_reference_full() {
         let result = parse_reference("John 3:16");
         assert!(result.is_some());
-        let (book, chapter, verse) = result.unwrap();
+        let (book, chapter, verse) = result.expect("verse parse should succeed");
         assert_eq!(book, "John");
         assert_eq!(chapter, Some(3));
         assert_eq!(verse, Some(16));
@@ -617,7 +618,7 @@ mod tests {
     fn test_parse_reference_book_chapter() {
         let result = parse_reference("Genesis 1");
         assert!(result.is_some());
-        let (book, chapter, verse) = result.unwrap();
+        let (book, chapter, verse) = result.expect("verse parse should succeed");
         assert_eq!(book, "Genesis");
         assert_eq!(chapter, Some(1));
         assert_eq!(verse, None);
@@ -627,7 +628,7 @@ mod tests {
     fn test_parse_reference_book_only() {
         let result = parse_reference("Psalms");
         assert!(result.is_some());
-        let (book, chapter, verse) = result.unwrap();
+        let (book, chapter, verse) = result.expect("verse parse should succeed");
         assert_eq!(book, "Psalms");
         assert_eq!(chapter, None);
         assert_eq!(verse, None);
@@ -637,7 +638,7 @@ mod tests {
     fn test_parse_reference_case_insensitive() {
         let result = parse_reference("proverbs 27:17");
         assert!(result.is_some());
-        let (book, chapter, verse) = result.unwrap();
+        let (book, chapter, verse) = result.expect("verse parse should succeed");
         assert_eq!(book, "proverbs");
         assert_eq!(chapter, Some(27));
         assert_eq!(verse, Some(17));
@@ -647,7 +648,7 @@ mod tests {
     fn test_parse_reference_with_leading_number() {
         let result = parse_reference("1 Samuel 15:23");
         assert!(result.is_some());
-        let (book, chapter, verse) = result.unwrap();
+        let (book, chapter, verse) = result.expect("verse parse should succeed");
         assert_eq!(book, "1 Samuel");
         assert_eq!(chapter, Some(15));
         assert_eq!(verse, Some(23));
@@ -673,7 +674,9 @@ mod tests {
                 keep_monthly: 12,
             },
             theme: "synthwave84".to_string(),
+            llama_swap_config: tmp.path().join("llama-swap-config.yaml"),
         };
+        
 
         let path = ensure_bible_db(&cfg)?;
         assert!(path.exists());
