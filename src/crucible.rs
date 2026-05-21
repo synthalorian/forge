@@ -2,7 +2,9 @@
 //!
 //! The Crucible is where raw material becomes something beautiful.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+use image::GenericImageView;
+use std::collections::HashMap;
 
 use crate::cli::{MeltAction, MeltArgs};
 use crate::config::Config;
@@ -14,7 +16,8 @@ pub fn run_melt(cfg: &Config, args: &MeltArgs) -> Result<()> {
             color,
             harmony,
             format,
-        } => run_palette(cfg, color, harmony, format),
+            file,
+        } => run_palette(cfg, color, harmony, format, file),
         MeltAction::Diagram {
             diag_type,
             description,
@@ -214,6 +217,7 @@ fn run_palette(
     color: &Option<String>,
     harmony: &Option<String>,
     format: &Option<String>,
+    file: &Option<String>,
 ) -> Result<()> {
     let theme = crate::theme::load_from_config(cfg);
 
@@ -222,6 +226,11 @@ fn run_palette(
         crate::theme::style_bold_header("Forge Melt — Color Palette", theme)
     );
     println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
+
+    // If --file is provided, extract palette from image
+    if let Some(image_path) = file {
+        return extract_palette_from_image(cfg, image_path, format);
+    }
 
     // Parse base color
     let base = color.as_deref().unwrap_or("#FF6B9D");
@@ -556,8 +565,121 @@ fn capitalize(s: &str) -> String {
     let mut c = s.chars();
     match c.next() {
         None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        Some(f) => f.to_uppercase().to_string() + c.as_str(),
     }
+}
+
+// ── Palette from Image ─────────────────────────────────────────────
+
+fn extract_palette_from_image(
+    cfg: &Config,
+    image_path: &str,
+    format: &Option<String>,
+) -> Result<()> {
+    let theme = crate::theme::load_from_config(cfg);
+    let output_format = format.as_deref().unwrap_or("terminal");
+
+    let img =
+        image::open(image_path).with_context(|| format!("Failed to open image: {image_path}"))?;
+    let (w, h) = img.dimensions();
+    let total_pixels = (w as u64) * (h as u64);
+
+    println!(
+        "  {} {} ({}×{} — {} px)",
+        crate::theme::style_label("Image:", theme),
+        crate::theme::style_value(image_path, theme),
+        crate::theme::style_muted(&w.to_string(), theme),
+        crate::theme::style_muted(&h.to_string(), theme),
+        crate::theme::style_value(&total_pixels.to_string(), theme),
+    );
+
+    // Resize to a max of 200px on longest edge for speed
+    let max_dim = 200u32;
+    let resized = if w > max_dim || h > max_dim {
+        let scale = max_dim as f64 / w.max(h) as f64;
+        let nw = (w as f64 * scale) as u32;
+        let nh = (h as f64 * scale) as u32;
+        img.resize_exact(nw, nh, image::imageops::FilterType::Lanczos3)
+    } else {
+        img
+    };
+
+    // Collect all pixels into quantized color buckets
+    let mut color_counts: HashMap<u32, u64> = HashMap::new();
+    let quantization = 32u32; // 8 levels per channel → 512 distinct buckets
+
+    for pixel in resized.pixels() {
+        let r = pixel.2[0] as u32 / quantization * quantization;
+        let g = pixel.2[1] as u32 / quantization * quantization;
+        let b = pixel.2[2] as u32 / quantization * quantization;
+        let key = (r << 16) | (g << 8) | b;
+        *color_counts.entry(key).or_insert(0) += 1;
+    }
+
+    // Sort by frequency, take top 8
+    let mut sorted: Vec<(u32, u64)> = color_counts.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+
+    let dominant: Vec<(u8, u8, u8)> = sorted
+        .iter()
+        .take(8)
+        .map(|(key, _)| {
+            let r = ((key >> 16) & 0xFF) as u8;
+            let g = ((key >> 8) & 0xFF) as u8;
+            let b = (key & 0xFF) as u8;
+            (r, g, b)
+        })
+        .collect();
+
+    println!();
+    println!("  {}", crate::theme::style_header("Dominant Colors", theme));
+
+    match output_format {
+        "css" => {
+            println!("  :root {{");
+            for (i, (r, g, b)) in dominant.iter().enumerate() {
+                let hex = format!("#{:02X}{:02X}{:02X}", r, g, b);
+                println!("    --color-{i}: {hex};");
+            }
+            println!("  }}");
+        }
+        "tailwind" => {
+            println!("  // tailwind.config.js");
+            println!("  colors: {{");
+            for (i, (r, g, b)) in dominant.iter().enumerate() {
+                let hex = format!("#{:02X}{:02X}{:02X}", r, g, b);
+                println!("    'extract-{i}': '{hex}',");
+            }
+            println!("  }}");
+        }
+        _ => {
+            for (i, (r, g, b)) in dominant.iter().enumerate() {
+                let hex = format!("#{:02X}{:02X}{:02X}", r, g, b);
+                let hsl = rgb_to_hsl((*r, *g, *b));
+                println!(
+                    "  {} {} {} (HSL: {:.0}°, {:.0}%, {:.0}%)",
+                    crate::theme::style_value(&format!("{}.", i + 1), theme),
+                    crate::theme::style_accent(&hex, theme),
+                    crate::theme::style_muted(&hex, theme),
+                    hsl.0,
+                    hsl.1,
+                    hsl.2,
+                );
+            }
+        }
+    }
+
+    println!();
+    println!(
+        "  {}",
+        crate::theme::style_muted(
+            &format!("Extracted from {} sampled pixels", resized.pixels().count()),
+            theme,
+        )
+    );
+    println!();
+
+    Ok(())
 }
 
 #[cfg(test)]

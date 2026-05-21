@@ -330,6 +330,8 @@ pub enum MeltAction {
         harmony: Option<String>,
         #[arg(short, long, help = "Export format: terminal, css, tailwind")]
         format: Option<String>,
+        #[arg(short, long, help = "Extract palette from an image file")]
+        file: Option<String>,
     },
     #[command(about = "Generate ASCII/SVG diagrams")]
     Diagram {
