@@ -101,15 +101,14 @@
     <h2 class="text-lg font-semibold text-text-primary mb-4">Pillars</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <% pillars = [
-        { name: "Anvil", path: "/anvil", icon: "◆", desc: "Backup & restore management", color: "text-neon-cyan", border_hover: "hover:border-neon-cyan/40", status: "active" },
-        { name: "Bellows", path: "/bellows", icon: "◇", desc: "AI agent orchestration", color: "text-neon-purple", border_hover: "hover:border-neon-purple/40", status: "coming" },
-        { name: "Flame", path: "/flame", icon: "✦", desc: "Template scaffolding engine", color: "text-neon-pink", border_hover: "hover:border-neon-pink/40", status: "coming" },
-        { name: "Tongs", path: "/tongs", icon: "▣", desc: "Code transformation toolkit", color: "text-neon-yellow", border_hover: "hover:border-neon-yellow/40", status: "coming" },
-        { name: "Crucible", path: "/crucible", icon: "⬡", desc: "Build & compilation pipeline", color: "text-neon-red", border_hover: "hover:border-neon-red/40", status: "coming" },
-        { name: "Bridge", path: "/bridge", icon: "⇌", desc: "External integration gateway", color: "text-neon-blue", border_hover: "hover:border-neon-blue/40", status: "coming" },
+        { name: "Anvil", path: "/anvil", icon: "◆", desc: "Backup & restore management", color: "text-neon-cyan", border_hover: "hover:border-neon-cyan/40" },
+        { name: "Bellows", path: "/bellows", icon: "◇", desc: "AI agent orchestration", color: "text-neon-purple", border_hover: "hover:border-neon-purple/40" },
+        { name: "Flame", path: "/flame", icon: "✦", desc: "Scripture & prayer journal", color: "text-neon-pink", border_hover: "hover:border-neon-pink/40" },
+        { name: "Tongs", path: "/tongs", icon: "▣", desc: "System management & diagnostics", color: "text-neon-yellow", border_hover: "hover:border-neon-yellow/40" },
+        { name: "Crucible", path: "/crucible", icon: "⬡", desc: "Creative tools & forge melt", color: "text-neon-red", border_hover: "hover:border-neon-red/40" },
+        { name: "Bridge", path: "/bridge", icon: "⇌", desc: "Integrations & notifications", color: "text-neon-blue", border_hover: "hover:border-neon-blue/40" },
       ] %>
       <% pillars.each do |pillar| %>
-        <% active = pillar[:status] == "active" %>
         <a href="<%= pillar[:path] %>"
            class="group rounded-xl bg-bg-panel border border-border-faint p-5 <%= pillar[:border_hover] %> hover:bg-bg-surface/50 transition-all duration-200 block">
           <div class="flex items-center gap-3 mb-3">
@@ -118,15 +117,10 @@
               <span class="text-sm font-semibold text-text-primary">
                 <%= pillar[:name] %>
               </span>
-              <% if active %>
-                <span class="w-1.5 h-1.5 rounded-full bg-neon-cyan"></span>
-              <% end %>
+              <span class="w-1.5 h-1.5 rounded-full bg-neon-green"></span>
             </div>
           </div>
           <p class="text-xs text-text-muted"><%= pillar[:desc] %></p>
-          <% unless active %>
-            <span class="inline-block mt-2 text-[10px] uppercase tracking-widest text-text-dim font-mono">Coming Soon</span>
-          <% end %>
         </a>
       <% end %>
     </div>

@@ -1,0 +1,18 @@
+<% if entries.empty? %>
+  <div class="text-center py-6 text-text-dim">
+    <p class="text-sm font-mono">No journal entries found</p>
+    <p class="text-xs text-text-muted mt-1">Run <code class="text-neon-purple font-mono">forge reflect entry "Today I..."</code> to start</p>
+  </div>
+<% else %>
+  <div class="space-y-2">
+    <% entries.each do |entry| %>
+      <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs text-neon-purple font-mono">#<%= entry[:id] %></span>
+          <span class="text-xs text-text-muted"><%= entry[:created_at].to_s.strftime("%b %d, %Y %H:%M") rescue entry[:created_at] %></span>
+        </div>
+        <p class="text-xs text-text-muted font-mono truncate"><%= entry[:content].to_s.truncate(120) %></p>
+      </div>
+    <% end %>
+  </div>
+<% end %>

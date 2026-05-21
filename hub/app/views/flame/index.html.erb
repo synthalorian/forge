@@ -34,6 +34,96 @@
     <% end %>
   </div>
 
+  <%# --- Interactive Scripture Search --- %>
+  <div class="rounded-xl bg-bg-panel border border-neon-pink/20 p-6" data-controller="scripture-search">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-neon-pink text-xl">🔍</span>
+      <h3 class="text-sm font-semibold text-text-primary uppercase tracking-wider">Scripture Search</h3>
+    </div>
+    <%= form_with url: "/flame/search", method: :post, class: "flex gap-3",
+          data: { scripture_search_target: "form" } do |f| %>
+      <%= f.text_field :query,
+            placeholder: "Search the scriptures...",
+            data: { scripture_search_target: "input", action: "input->scripture-search#search" },
+            class: "flex-1 bg-bg-dark/80 border border-border-faint rounded-lg px-4 py-2 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-neon-pink/50" %>
+      <%= f.submit "Search",
+            class: "bg-neon-pink/20 border border-neon-pink/40 text-neon-pink px-4 py-2 rounded-lg text-sm font-mono hover:bg-neon-pink/30 transition-colors cursor-pointer" %>
+    <% end %>
+    <%= turbo_frame_tag "flame-search-results", data: { scripture_search_target: "results" } do %>
+    <% end %>
+  </div>
+
+  <%# --- Reference Lookup --- %>
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-neon-purple text-xl">📚</span>
+      <h3 class="text-sm font-semibold text-text-primary uppercase tracking-wider">Reference Lookup</h3>
+    </div>
+    <%= form_with url: "/flame/reference", method: :post, class: "flex gap-3 items-end" do |f| %>
+      <div class="flex-1">
+        <label class="block text-xs text-text-muted font-mono mb-1">Book</label>
+        <%= f.text_field :book,
+              placeholder: "John",
+              class: "w-full bg-bg-dark/80 border border-border-faint rounded-lg px-3 py-2 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-neon-purple/50" %>
+      </div>
+      <div class="w-24">
+        <label class="block text-xs text-text-muted font-mono mb-1">Chapter</label>
+        <%= f.text_field :chapter,
+              placeholder: "3",
+              class: "w-full bg-bg-dark/80 border border-border-faint rounded-lg px-3 py-2 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-neon-purple/50" %>
+      </div>
+      <div class="w-24">
+        <label class="block text-xs text-text-muted font-mono mb-1">Verse</label>
+        <%= f.text_field :verse,
+              placeholder: "16",
+              class: "w-full bg-bg-dark/80 border border-border-faint rounded-lg px-3 py-2 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-neon-purple/50" %>
+      </div>
+      <%= f.submit "Lookup",
+            class: "bg-neon-purple/20 border border-neon-purple/40 text-neon-purple px-4 py-2 rounded-lg text-sm font-mono hover:bg-neon-purple/30 transition-colors cursor-pointer" %>
+    <% end %>
+    <%= turbo_frame_tag "flame-reference-results" do %>
+    <% end %>
+  </div>
+
+  <%# --- Recent Journal Entries --- %>
+  <div class="rounded-xl bg-bg-panel border border-neon-cyan/20 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <span class="text-neon-cyan text-xl">📝</span>
+        <h3 class="text-sm font-semibold text-text-primary uppercase tracking-wider">Recent Journal Entries</h3>
+      </div>
+      <%= link_to "View All", "/flame/journal",
+            data: { turbo_stream: true },
+            class: "text-xs text-neon-cyan font-mono hover:text-neon-pink transition-colors" %>
+    </div>
+    <%= turbo_frame_tag "flame-journal-list" do %>
+      <% if @journal_entries.present? %>
+        <div class="space-y-2">
+          <% @journal_entries.each do |entry| %>
+            <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-neon-purple font-mono">#<%= entry[:id] %></span>
+                <span class="text-xs text-text-muted"><%= entry[:created_at].to_s.strftime("%b %d, %Y %H:%M") rescue entry[:created_at] %></span>
+              </div>
+              <p class="text-xs text-text-muted font-mono truncate"><%= entry[:content].to_s.truncate(120) %></p>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-6 text-text-dim">
+          <p class="text-sm font-mono">No journal entries found</p>
+          <p class="text-xs text-text-muted mt-1">Run <code class="text-neon-purple font-mono">forge reflect entry "Today I..."</code> to start</p>
+        </div>
+      <% end %>
+    <% end %>
+    <div class="mt-4 p-3 rounded-lg bg-bg-surface/30 border border-border-faint">
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-neon-yellow">🔒</span>
+        <span class="text-xs text-text-muted">AES-256-GCM encrypted at rest</span>
+      </div>
+    </div>
+  </div>
+
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
       <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">📖 Scripture</h3>

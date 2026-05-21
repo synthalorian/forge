@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ThemeColor {
@@ -49,6 +50,7 @@ impl fmt::Display for StyledString {
     }
 }
 
+#[derive(Clone)]
 pub struct Theme {
     pub name: &'static str,
     pub header: ThemeColor,
@@ -273,11 +275,7 @@ pub fn load_from_config(cfg: &crate::config::Config) -> &'static Theme {
 }
 
 pub fn available_themes() -> Vec<&'static str> {
-    let mut names: Vec<&'static str> = ALL_THEMES.iter().map(|t| t.name).collect();
-    for custom in custom_themes().iter() {
-        names.push(custom.name);
-    }
-    names
+    ALL_THEMES.iter().map(|t| t.name).collect()
 }
 
 // ── Custom Theme System ───────────────────────────────────────
@@ -308,28 +306,25 @@ impl CustomThemeDef {
         ThemeColor::new(r, g, b)
     }
 
-    pub fn to_theme(&self) -> Option<(&'static str, Theme)> {
+    pub fn to_theme(&self) -> Option<Theme> {
         let name = self.name.to_lowercase();
         if !name.ends_with(" (custom)") {
             return None; // Already a built-in name, skip
         }
-        Some((
-            Box::leak(name.into_boxed_str()),
-            Theme {
-                name: "", // filled below
-                header: Self::hex_to_color(&self.header),
-                accent: Self::hex_to_color(&self.accent),
-                success: Self::hex_to_color(&self.success),
-                error: Self::hex_to_color(&self.error),
-                warning: Self::hex_to_color(&self.warning),
-                info: Self::hex_to_color(&self.info),
-                muted: Self::hex_to_color(&self.muted),
-                border: Self::hex_to_color(&self.border),
-                value: Self::hex_to_color(&self.value),
-                label: Self::hex_to_color(&self.label),
-                progress_bar: Self::hex_to_color(&self.progress_bar),
-            },
-        ))
+        Some(Theme {
+            name: "",
+            header: Self::hex_to_color(&self.header),
+            accent: Self::hex_to_color(&self.accent),
+            success: Self::hex_to_color(&self.success),
+            error: Self::hex_to_color(&self.error),
+            warning: Self::hex_to_color(&self.warning),
+            info: Self::hex_to_color(&self.info),
+            muted: Self::hex_to_color(&self.muted),
+            border: Self::hex_to_color(&self.border),
+            value: Self::hex_to_color(&self.value),
+            label: Self::hex_to_color(&self.label),
+            progress_bar: Self::hex_to_color(&self.progress_bar),
+        })
     }
 }
 
@@ -340,60 +335,65 @@ pub fn custom_theme_dir() -> PathBuf {
 }
 
 /// Load custom themes from `~/.forge/themes/*.toml`.
-/// Results are cached in a OnceLock after first load.
-pub fn custom_themes() -> &'static Vec<Theme> {
-    static CUSTOM: OnceLock<Vec<Theme>> = OnceLock::new();
-    CUSTOM.get_or_init(|| {
-        let dir = custom_theme_dir();
-        let mut themes = Vec::new();
-        if !dir.exists() {
-            return themes;
-        }
-        if let Ok(entries) = std::fs::read_dir(&dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.extension().and_then(|e| e.to_str()) != Some("toml") {
-                    continue;
-                }
-                let content = match std::fs::read_to_string(&path) {
-                    Ok(c) => c,
-                    Err(_) => continue,
-                };
-                let custom: CustomThemeDef = match toml::from_str(&content) {
-                    Ok(c) => c,
-                    Err(_) => continue,
-                };
-                let name = custom.name.to_lowercase();
-                // Skip if name collides with a built-in theme
-                if ALL_THEMES.iter().any(|t| t.name == name) {
-                    continue;
-                }
-                let leaked_name: &'static str = Box::leak(name.into_boxed_str());
-                themes.push(Theme {
-                    name: leaked_name,
-                    header: CustomThemeDef::hex_to_color(&custom.header),
-                    accent: CustomThemeDef::hex_to_color(&custom.accent),
-                    success: CustomThemeDef::hex_to_color(&custom.success),
-                    error: CustomThemeDef::hex_to_color(&custom.error),
-                    warning: CustomThemeDef::hex_to_color(&custom.warning),
-                    info: CustomThemeDef::hex_to_color(&custom.info),
-                    muted: CustomThemeDef::hex_to_color(&custom.muted),
-                    border: CustomThemeDef::hex_to_color(&custom.border),
-                    value: CustomThemeDef::hex_to_color(&custom.value),
-                    label: CustomThemeDef::hex_to_color(&custom.label),
-                    progress_bar: CustomThemeDef::hex_to_color(&custom.progress_bar),
-                });
+/// Cached in a Mutex<HashMap> — can be reloaded at runtime.
+fn load_custom_themes_from_disk() -> HashMap<String, Theme> {
+    let dir = custom_theme_dir();
+    let mut map = HashMap::new();
+    if !dir.exists() {
+        return map;
+    }
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("toml") {
+                continue;
             }
+            let content = match std::fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let custom: CustomThemeDef = match toml::from_str(&content) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let name = custom.name.to_lowercase();
+            // Skip if name collides with a built-in theme
+            if ALL_THEMES.iter().any(|t| t.name == name) {
+                continue;
+            }
+            map.insert(name.clone(), Theme {
+                name: "", // filled from the HashMap key on lookup
+                header: CustomThemeDef::hex_to_color(&custom.header),
+                accent: CustomThemeDef::hex_to_color(&custom.accent),
+                success: CustomThemeDef::hex_to_color(&custom.success),
+                error: CustomThemeDef::hex_to_color(&custom.error),
+                warning: CustomThemeDef::hex_to_color(&custom.warning),
+                info: CustomThemeDef::hex_to_color(&custom.info),
+                muted: CustomThemeDef::hex_to_color(&custom.muted),
+                border: CustomThemeDef::hex_to_color(&custom.border),
+                value: CustomThemeDef::hex_to_color(&custom.value),
+                label: CustomThemeDef::hex_to_color(&custom.label),
+                progress_bar: CustomThemeDef::hex_to_color(&custom.progress_bar),
+            });
         }
-        themes
-    })
+    }
+    map
 }
 
-/// Reload custom themes — clears the cache.
+static CUSTOM_THEMES: Mutex<Option<HashMap<String, Theme>>> = Mutex::new(None);
+
+pub fn custom_themes() -> Vec<Theme> {
+    let mut guard = CUSTOM_THEMES.lock().unwrap_or_else(|e| e.into_inner());
+    if guard.is_none() {
+        *guard = Some(load_custom_themes_from_disk());
+    }
+    guard.as_ref().unwrap().values().cloned().collect()
+}
+
+/// Reload custom themes from disk.
 pub fn reload_custom_themes() {
-    // The OnceLock can't be reset, so this is a no-op.
-    // Custom themes are loaded once at first access.
-    // For dynamic reload, the user restarts forge.
+    let mut guard = CUSTOM_THEMES.lock().unwrap_or_else(|e| e.into_inner());
+    *guard = Some(load_custom_themes_from_disk());
 }
 
 pub fn get_theme(name: &str) -> &'static Theme {
@@ -404,13 +404,7 @@ pub fn get_theme(name: &str) -> &'static Theme {
             return t;
         }
     }
-    // Check custom themes
-    for t in custom_themes().iter() {
-        if t.name == lower {
-            return t;
-        }
-    }
-    // Fall back to default
+    // Fall back to default (custom themes are not &'static)
     &SYNTHWAVE84
 }
 

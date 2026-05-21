@@ -1,0 +1,99 @@
+<% content_for :breadcrumb do %>
+  <%= link_to "Bellows", "/bellows", class: "text-text-muted hover:text-neon-purple transition-colors" %>
+  <span class="text-text-dim mx-2">›</span>
+  <%= link_to "Sessions", "/bellows/sessions", class: "text-text-muted hover:text-neon-purple transition-colors" %>
+  <span class="text-text-dim mx-2">›</span>
+  <span class="text-text-primary">Session <%= @session_id %></span>
+<% end %>
+
+<div class="space-y-6 max-w-6xl">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-neon-purple text-2xl">◇</span>
+      <div>
+        <h1 class="text-2xl font-bold text-neon-purple font-mono tracking-tight">
+          <%= @session&.dig("title").presence || "Session #{@session_id}" %>
+        </h1>
+        <p class="text-text-muted text-sm mt-0.5">Session detail</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= button_to "Delete Session", "/bellows/sessions/#{@session_id}", method: :delete,
+          form: { class: "inline" },
+          class: "rounded-lg bg-bg-surface/50 border border-border-faint px-3 py-1.5
+                 text-xs font-mono text-text-dim hover:text-neon-red hover:border-neon-red/30 transition-colors cursor-pointer" %>
+      <%= link_to "← Back to Sessions", "/bellows/sessions",
+          class: "rounded-lg bg-bg-surface/50 border border-border-faint px-3 py-1.5
+                 text-xs font-mono text-text-muted hover:text-neon-purple hover:border-neon-purple/30 transition-colors" %>
+    </div>
+  </div>
+
+  <% if @session %>
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div>
+          <p class="text-xs text-text-dim font-mono uppercase tracking-wider mb-1">Agent</p>
+          <span class="px-2 py-0.5 rounded text-xs font-mono
+                       bg-neon-purple/10 border border-neon-purple/20 text-neon-purple">
+            <%= @session["agent_name"] %>
+          </span>
+        </div>
+        <div>
+          <p class="text-xs text-text-dim font-mono uppercase tracking-wider mb-1">Messages</p>
+          <span class="text-sm font-mono text-text-primary"><%= @messages.length %></span>
+        </div>
+        <div>
+          <p class="text-xs text-text-dim font-mono uppercase tracking-wider mb-1">Created</p>
+          <span class="text-sm font-mono text-text-muted"><%= @session["created_at"] %></span>
+        </div>
+        <div>
+          <p class="text-xs text-text-dim font-mono uppercase tracking-wider mb-1">Updated</p>
+          <span class="text-sm font-mono text-text-muted"><%= @session["updated_at"] %></span>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @messages.any? %>
+    <div class="space-y-3">
+      <% @messages.each do |msg| %>
+        <div class="<%= case msg["role"]
+                       when "user" then "ml-8 bg-neon-purple/10 border border-neon-purple/20"
+                       when "assistant" then "mr-8 bg-neon-cyan/10 border border-neon-cyan/20"
+                       else "mx-auto max-w-xl bg-bg-surface/30 border border-border-faint"
+                       end %> rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-mono uppercase tracking-wider
+                         <%= case msg["role"]
+                             when "user" then "text-neon-purple"
+                             when "assistant" then "text-neon-cyan"
+                             else "text-text-dim"
+                             end %>">
+              <%= case msg["role"]
+                  when "user" then "▸ YOU"
+                  when "assistant" then "▸ ASSISTANT"
+                  else "▸ SYSTEM"
+                  end %>
+            </span>
+            <span class="text-xs text-text-dim font-mono"><%= msg["created_at"] %></span>
+          </div>
+          <div class="text-sm font-mono leading-relaxed
+                      <%= msg["role"] == "system" ? "italic text-text-dim" : "text-text-primary" %>">
+            <pre class="whitespace-pre-wrap break-words font-mono text-sm"><%= msg["content"] %></pre>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% elsif @session %>
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-12 text-center">
+      <span class="text-3xl text-text-dim">◇</span>
+      <p class="text-text-dim font-mono text-sm mt-4">No messages in this session</p>
+    </div>
+  <% else %>
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-12 text-center">
+      <span class="text-3xl text-text-dim">◇</span>
+      <p class="text-text-dim font-mono text-sm mt-4">Session not found</p>
+      <p class="text-text-dim text-xs mt-1">This session may have been deleted or doesn't exist</p>
+    </div>
+  <% end %>
+</div>

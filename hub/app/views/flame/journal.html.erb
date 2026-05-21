@@ -1,0 +1,97 @@
+<% content_for :breadcrumb do %>
+  <%= link_to "Flame", "/flame", class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <span class="text-text-primary">Journal</span>
+<% end %>
+
+<% @title = "Journal Entries · Flame" %>
+
+<div class="space-y-6 max-w-5xl">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-neon-cyan text-2xl">📝</span>
+      <div>
+        <h1 class="text-xl font-bold text-neon-pink font-mono tracking-tight">JOURNAL ENTRIES</h1>
+        <p class="text-text-muted text-xs mt-0.5">
+          <% if @forge_available %>
+            <%= @total_entries %> entries · AES-256-GCM encrypted at rest
+          <% else %>
+            Spirit database unavailable
+          <% end %>
+        </p>
+      </div>
+    </div>
+    <%= link_to "← Back to Flame", "/flame",
+          class: "text-xs text-neon-cyan font-mono hover:text-neon-pink transition-colors" %>
+  </div>
+
+  <%# --- Search --- %>
+  <div class="rounded-xl bg-bg-panel border border-neon-pink/20 p-5">
+    <%= form_with url: "/flame/journal/search", method: :post, class: "flex gap-3" do |f| %>
+      <%= f.text_field :query,
+            value: local_assigns[:query],
+            placeholder: "Search journal entries...",
+            class: "flex-1 bg-bg-dark/80 border border-border-faint rounded-lg px-4 py-2 text-sm font-mono text-text-primary placeholder:text-text-dim focus:outline-none focus:border-neon-pink/50" %>
+      <%= f.submit "Search",
+            class: "bg-neon-pink/20 border border-neon-pink/40 text-neon-pink px-4 py-2 rounded-lg text-sm font-mono hover:bg-neon-pink/30 transition-colors cursor-pointer" %>
+    <% end %>
+  </div>
+
+  <% if @entries.present? %>
+    <%# --- Entry List --- %>
+    <div class="space-y-2">
+      <% @entries.each do |entry| %>
+        <%= link_to "/flame/journal/#{entry[:id]}", class: "block" do %>
+          <div class="rounded-xl bg-bg-panel border border-border-faint p-4 hover:border-neon-pink/30 transition-colors">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-neon-pink font-mono font-semibold">#<%= entry[:id] %></span>
+                <span class="text-xs text-neon-purple font-mono">🔒 encrypted</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-text-muted font-mono"><%= human_size(entry[:content_size]) %></span>
+                <span class="text-xs text-text-muted"><%= time_ago(entry[:created_at]) %></span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-dim font-mono"><%= human_time(entry[:created_at]) %></span>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <%# --- Pagination --- %>
+    <% if @total_pages > 1 %>
+      <div class="flex items-center justify-center gap-2 pt-4">
+        <% if @page > 1 %>
+          <%= link_to "← Prev", "/flame/journal?page=#{@page - 1}",
+                class: "px-3 py-1.5 rounded-lg text-xs font-mono bg-bg-panel border border-border-faint text-text-muted hover:text-neon-pink hover:border-neon-pink/30 transition-colors" %>
+        <% end %>
+
+        <span class="text-xs text-text-dim font-mono px-3">
+          Page <%= @page %> of <%= @total_pages %>
+        </span>
+
+        <% if @page < @total_pages %>
+          <%= link_to "Next →", "/flame/journal?page=#{@page + 1}",
+                class: "px-3 py-1.5 rounded-lg text-xs font-mono bg-bg-panel border border-border-faint text-text-muted hover:text-neon-pink hover:border-neon-pink/30 transition-colors" %>
+        <% end %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-8 text-center">
+      <p class="text-text-muted text-sm font-mono">No journal entries found</p>
+      <p class="text-xs text-text-dim mt-2 font-mono">
+        Run <code class="text-neon-purple">forge reflect entry "Today I..."</code> to start journaling
+      </p>
+    </div>
+  <% end %>
+
+  <div class="p-3 rounded-lg bg-bg-surface/30 border border-border-faint">
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-neon-yellow">🔒</span>
+      <span class="text-xs text-text-muted">Content encrypted with AES-256-GCM. Click an entry to decrypt and view.</span>
+    </div>
+  </div>
+</div>

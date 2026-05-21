@@ -32,32 +32,35 @@
 
 /* ============================================================
    THEME: Synthwave84 (default)
+   Matches TUI's SYNTHWAVE84 from src/theme.rs exactly.
+   Hierarchy: purple (primary) → lavender (secondary) → cyan → pink → yellow → red
+   Backgrounds: #0d0221 / #240037  |  Primary: #8f00ff  |  Magenta: #ff00ff
    ============================================================ */
 :root,
 [data-theme="synthwave84"] {
-  --theme-bg-dark: #0f0f23;
-  --theme-bg-panel: #1a1a2e;
-  --theme-bg-card: #16213e;
-  --theme-bg-surface: #1e1e3a;
+  --theme-bg-dark: #0d0221;
+  --theme-bg-panel: #240037;
+  --theme-bg-card: #1a0a2e;
+  --theme-bg-surface: #1f0f33;
 
-  --theme-accent: #03edf9;
-  --theme-secondary: #0080ff;
-  --theme-tertiary: #8300ff;
+  --theme-accent: #8f00ff;
+  --theme-secondary: #a855f7;
+  --theme-tertiary: #03edf9;
   --theme-pink: #ff7edb;
 
-  --theme-text-primary: #e0e0e0;
-  --theme-text-muted: #888;
-  --theme-text-dim: #555;
+  --theme-text-primary: #ffffff;
+  --theme-text-muted: #614d85;
+  --theme-text-dim: #3d2555;
 
-  --theme-border: #614d85;
-  --theme-border-faint: rgba(97, 77, 133, 0.3);
+  --theme-border: #8f00ff;
+  --theme-border-faint: rgba(143, 0, 255, 0.3);
 
-  --theme-sidebar-bg: #12122a;
-  --theme-sidebar-hover: #1a1a3e;
-  --theme-sidebar-active: rgba(3, 237, 249, 0.1);
+  --theme-sidebar-bg: #0d0221;
+  --theme-sidebar-hover: #240037;
+  --theme-sidebar-active: rgba(143, 0, 255, 0.15);
 
-  --theme-glow-a: rgba(255, 0, 255, 0.03);
-  --theme-glow-b: rgba(255, 0, 255, 0.06);
+  --theme-glow-a: rgba(143, 0, 255, 0.03);
+  --theme-glow-b: rgba(143, 0, 255, 0.08);
 }
 
 /* ============================================================

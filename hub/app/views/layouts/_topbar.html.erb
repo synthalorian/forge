@@ -18,6 +18,20 @@
   </div>
 
   <div class="flex items-center gap-4">
+    <form action="/search" method="get" class="hidden sm:block" data-controller="global-search"
+          data-global-search-target="form">
+      <input type="text"
+             name="q"
+             value="<%= params[:q] %>"
+             placeholder="Search..."
+             data-global-search-target="input"
+             data-action="input->global-search#search keydown->global-search#submit"
+             class="bg-bg-dark/80 border border-border-faint rounded-lg px-4 py-1.5 text-sm font-mono
+                    text-text-primary placeholder-text-muted/50 focus:outline-none focus:border-neon-cyan/50
+                    focus:ring-1 focus:ring-neon-cyan/30 transition-colors w-48 focus:w-64"
+             autocomplete="off" />
+    </form>
+
     <span class="flex items-center gap-1.5 text-xs text-text-muted font-mono">
       <span class="w-2 h-2 rounded-full bg-neon-green inline-block"></span>
       connected

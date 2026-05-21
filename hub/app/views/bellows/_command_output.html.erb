@@ -1,0 +1,16 @@
+<div class="rounded-xl bg-bg-panel border border-border-faint p-6">
+  <div class="flex items-center gap-2 mb-4">
+    <span class="text-neon-purple text-xs font-mono">▸</span>
+    <h4 class="text-sm font-semibold text-text-primary font-mono"><%= title %></h4>
+  </div>
+
+  <% if output.to_s.strip.empty? %>
+    <div class="text-center py-8 text-text-dim">
+      <p class="text-sm font-mono">No output returned</p>
+    </div>
+  <% else %>
+    <pre class="rounded-lg bg-bg-dark/80 border border-border-faint p-4
+                text-xs font-mono text-neon-purple leading-relaxed
+                overflow-x-auto whitespace-pre-wrap"><%= output %></pre>
+  <% end %>
+</div>

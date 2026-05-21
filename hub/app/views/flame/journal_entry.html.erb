@@ -1,0 +1,40 @@
+<% content_for :breadcrumb do %>
+  <%= link_to "Flame", "/flame", class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <%= link_to "Journal", "/flame/journal", class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <span class="text-text-primary">#<%= @entry_id %></span>
+<% end %>
+
+<% @title = "Entry ##{@entry_id} · Journal · Flame" %>
+
+<div class="max-w-4xl space-y-6">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-neon-cyan text-2xl">📝</span>
+      <div>
+        <h1 class="text-xl font-bold text-neon-pink font-mono tracking-tight">ENTRY #<%= @entry_id %></h1>
+        <p class="text-text-muted text-xs mt-0.5">Decrypted journal entry</p>
+      </div>
+    </div>
+    <%= link_to "← Back to Journal", "/flame/journal",
+          class: "text-xs text-neon-cyan font-mono hover:text-neon-pink transition-colors" %>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-neon-pink/20 p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-neon-pink text-sm">🔓</span>
+      <h3 class="text-sm font-semibold text-text-primary uppercase tracking-wider">Decrypted Content</h3>
+    </div>
+    <div class="bg-bg-dark/80 rounded-lg p-5 border border-border-faint">
+      <pre class="text-sm text-neon-cyan/90 font-mono whitespace-pre-wrap leading-relaxed"><%= @entry_content %></pre>
+    </div>
+  </div>
+
+  <div class="p-3 rounded-lg bg-bg-surface/30 border border-border-faint">
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-neon-yellow">🔒</span>
+      <span class="text-xs text-text-muted">This entry was decrypted on-the-fly via <code class="text-neon-cyan font-mono">forge reflect read <%= @entry_id %></code></span>
+    </div>
+  </div>
+</div>

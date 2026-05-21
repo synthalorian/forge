@@ -431,10 +431,17 @@ pub fn run_search(cfg: &Config, query: &str, limit: usize) -> Result<()> {
 
         // Extract to temp dir
         let temp_dir = tempfile::tempdir().context("Failed to create temp dir for search")?;
+        let temp_path = match temp_dir.path().to_str() {
+            Some(p) => p.to_string(),
+            None => {
+                println!("  {} {} — {}", crate::theme::style_error("✗", theme), crate::theme::style_accent(repo_name, theme), crate::theme::style_error("non-UTF-8 temp path", theme));
+                continue;
+            }
+        };
         if let Err(e) = crate::archive::extract_dedup_archive(
             cfg,
             manifest_path,
-            temp_dir.path().to_str().unwrap(),
+            &temp_path,
         ) {
             println!(
                 "  {} {} — {}",

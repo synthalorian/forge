@@ -1,0 +1,83 @@
+<% content_for :breadcrumb do %>
+  <%= link_to "Tongs", "/tongs", class: "hover:text-neon-cyan transition-colors" %>
+  <span class="text-text-dim">/</span>
+  <span class="text-text-primary">Dotfiles</span>
+<% end %>
+
+<div class="space-y-8 max-w-6xl">
+  <div class="flex items-center gap-3">
+    <span class="text-neon-yellow text-3xl">▣</span>
+    <div>
+      <h1 class="text-2xl font-bold text-neon-yellow font-mono tracking-tight">DOTFILES</h1>
+      <p class="text-text-muted text-sm mt-0.5">Track, version, and restore your configuration files</p>
+    </div>
+  </div>
+
+  <!-- Track form -->
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+    <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Track a Dotfile</h3>
+    <%= form_with url: "/tongs/dotfiles/track", method: :post, local: true, class: "flex gap-3 items-end" do |f| %>
+      <div class="flex-1">
+        <label class="text-xs text-text-muted block mb-1.5 font-mono" for="dotfile-path">File Path</label>
+        <input type="text" name="path" id="dotfile-path"
+               placeholder="~/.config/hypr/hyprland.conf"
+               required
+               class="w-full text-xs font-mono px-3 py-2 rounded-lg bg-bg-surface/30 border border-border-faint
+                      text-text-primary placeholder:text-text-dim focus:border-neon-yellow/50 focus:outline-none">
+      </div>
+      <%= f.submit "Track",
+          class: "text-xs font-mono px-4 py-2 rounded-lg bg-neon-yellow/10 border border-neon-yellow/30 text-neon-yellow
+                 hover:bg-neon-yellow/20 transition-colors cursor-pointer whitespace-nowrap" %>
+    <% end %>
+  </div>
+
+  <!-- Tracked dotfiles list -->
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+    <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Tracked Dotfiles</h3>
+
+    <% if @dotfiles.any? %>
+      <div class="space-y-2">
+        <div class="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-mono text-text-dim uppercase tracking-wider">
+          <div class="col-span-3">Name</div>
+          <div class="col-span-5">Path</div>
+          <div class="col-span-2">Status</div>
+          <div class="col-span-2 text-right">Actions</div>
+        </div>
+        <% @dotfiles.each do |df| %>
+          <div class="grid grid-cols-12 gap-2 items-center px-3 py-3 rounded-lg bg-bg-surface/30 border border-border-faint">
+            <div class="col-span-3 text-xs font-mono text-neon-yellow truncate" title="<%= df[:name] %>">
+              <%= df[:name] %>
+            </div>
+            <div class="col-span-5 text-xs font-mono text-text-primary truncate" title="<%= df[:path] %>">
+              <%= df[:path] %>
+            </div>
+            <div class="col-span-2">
+              <span class="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full
+                           bg-neon-green/10 border border-neon-green/30 text-neon-green">
+                <span class="w-1.5 h-1.5 rounded-full bg-neon-green"></span>
+                <%= df[:status] %>
+              </span>
+            </div>
+            <div class="col-span-2 text-right">
+              <%= button_to "Restore", "/tongs/dotfiles/restore",
+                  method: :post,
+                  params: { name: df[:name] },
+                  class: "text-[10px] font-mono px-2.5 py-1 rounded-lg bg-neon-yellow/10 border border-neon-yellow/30 text-neon-yellow
+                         hover:bg-neon-yellow/20 transition-colors cursor-pointer" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-center py-8 text-text-dim">
+        <p class="text-sm font-mono">No dotfiles tracked yet</p>
+        <p class="text-xs font-mono mt-1 text-text-dim">Use the form above to start tracking configuration files</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <%= link_to "← Back to Tongs", "/tongs",
+        class: "text-xs font-mono text-text-muted hover:text-neon-yellow transition-colors" %>
+  </div>
+</div>
