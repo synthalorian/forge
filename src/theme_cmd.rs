@@ -88,6 +88,9 @@ pub fn run(action: &ThemeAction) -> Result<()> {
         ThemeAction::Create => {
             run_create()?;
         }
+        ThemeAction::Export { name, format } => {
+            run_export(name.as_deref(), format.as_deref())?;
+        }
     }
 
     Ok(())
@@ -249,4 +252,214 @@ fn prompt_hex(slot: &str, desc: &str, default: &str) -> Result<String> {
             crate::theme::style_value(default, theme),
         );
     }
+}
+
+fn run_export(name: Option<&str>, format: Option<&str>) -> Result<()> {
+    let cfg = Config::load().ok();
+    let theme_name = name
+        .or_else(|| cfg.as_ref().map(|c| c.theme.as_str()))
+        .unwrap_or("synthwave84");
+    let theme = crate::theme::get_theme(theme_name);
+    let fmt = format.unwrap_or("alacritty").to_lowercase();
+
+    let export = match fmt.as_str() {
+        "kitty" => export_kitty(theme),
+        "ghostty" => export_ghostty(theme),
+        _ => export_alacritty(theme),
+    };
+
+    let t = crate::theme::get_default_theme();
+    println!();
+    println!("{} {} → {}", crate::theme::style_success("✓", t), crate::theme::style_accent(theme_name, t), crate::theme::style_value(&fmt, t));
+    println!("{}", crate::theme::style_border(&"─".repeat(48), t));
+    println!("{export}");
+    Ok(())
+}
+
+fn darken_color(c: &crate::theme::ThemeColor, amount: u8) -> String {
+    let r = c.r.saturating_sub(amount);
+    let g = c.g.saturating_sub(amount);
+    let b = c.b.saturating_sub(amount);
+    format!("#{:02x}{:02x}{:02x}", r, g, b)
+}
+
+fn brighten_color(c: &crate::theme::ThemeColor, amount: u8) -> String {
+    let r = c.r.saturating_add(amount);
+    let g = c.g.saturating_add(amount);
+    let b = c.b.saturating_add(amount);
+    format!("#{:02x}{:02x}{:02x}", r, g, b)
+}
+
+fn export_alacritty(theme: &crate::theme::Theme) -> String {
+    let bg = darken_color(&theme.header, 200);
+    let fg = brighten_color(&theme.value, 0);
+    let cursor = brighten_color(&theme.accent, 30);
+    format!(
+        r##"[colors.primary]
+background = "{bg}"
+foreground = "{fg}"
+
+[colors.cursor]
+cursor = "{cursor}"
+text = "{bg}"
+
+[colors.normal]
+black = "{bg}"
+red = "#{er:02x}{eg:02x}{eb:02x}"
+green = "#{sr:02x}{sg:02x}{sb:02x}"
+yellow = "#{wr:02x}{wg:02x}{wb:02x}"
+blue = "#{hr:02x}{hg:02x}{hb:02x}"
+magenta = "#{ir:02x}{ig:02x}{ib:02x}"
+cyan = "#{ar:02x}{ag:02x}{ab:02x}"
+white = "{fg}"
+
+[colors.bright]
+black = "#{mr:02x}{mg:02x}{mb:02x}"
+red = "{ebr}"
+green = "{sbr}"
+yellow = "{wbr}"
+blue = "{hbr}"
+magenta = "{ibr}"
+cyan = "#{ar:02x}{ag:02x}{ab:02x}"
+white = "{fg}"
+"##,
+        bg = bg, fg = fg, cursor = cursor,
+        er = theme.error.r, eg = theme.error.g, eb = theme.error.b,
+        sr = theme.success.r, sg = theme.success.g, sb = theme.success.b,
+        wr = theme.warning.r, wg = theme.warning.g, wb = theme.warning.b,
+        hr = theme.header.r, hg = theme.header.g, hb = theme.header.b,
+        ir = theme.info.r, ig = theme.info.g, ib = theme.info.b,
+        ar = theme.accent.r, ag = theme.accent.g, ab = theme.accent.b,
+        mr = theme.muted.r, mg = theme.muted.g, mb = theme.muted.b,
+        ebr = brighten_color(&theme.error, 40),
+        sbr = brighten_color(&theme.success, 40),
+        wbr = brighten_color(&theme.warning, 40),
+        hbr = brighten_color(&theme.header, 40),
+        ibr = brighten_color(&theme.info, 40),
+    )
+}
+
+fn export_kitty(theme: &crate::theme::Theme) -> String {
+    let bg = darken_color(&theme.header, 200);
+    let fg = brighten_color(&theme.value, 0);
+    let cursor = brighten_color(&theme.accent, 30);
+    format!(
+        r##"# Kitty theme derived from forge "{name}"
+foreground {fg}
+background {bg}
+cursor {cursor}
+cursor_text_color {bg}
+selection_foreground {fg}
+selection_background #{hr:02x}{hg:02x}{hb:02x}
+
+# black
+color0 {bg}
+color8 #{mr:02x}{mg:02x}{mb:02x}
+
+# red
+color1 #{er:02x}{eg:02x}{eb:02x}
+color9 {ebr}
+
+# green
+color2 #{sr:02x}{sg:02x}{sb:02x}
+color10 {sbr}
+
+# yellow
+color3 #{wr:02x}{wg:02x}{wb:02x}
+color11 {wbr}
+
+# blue
+color4 #{hr:02x}{hg:02x}{hb:02x}
+color12 {hbr}
+
+# magenta
+color5 #{ir:02x}{ig:02x}{ib:02x}
+color13 {ibr}
+
+# cyan
+color6 #{ar:02x}{ag:02x}{ab:02x}
+color14 #{ar:02x}{ag:02x}{ab:02x}
+
+# white
+color7 {fg}
+color15 {fg}
+"##,
+        name = theme.name,
+        bg = bg, fg = fg, cursor = cursor,
+        hr = theme.header.r, hg = theme.header.g, hb = theme.header.b,
+        mr = theme.muted.r, mg = theme.muted.g, mb = theme.muted.b,
+        er = theme.error.r, eg = theme.error.g, eb = theme.error.b,
+        sr = theme.success.r, sg = theme.success.g, sb = theme.success.b,
+        wr = theme.warning.r, wg = theme.warning.g, wb = theme.warning.b,
+        ir = theme.info.r, ig = theme.info.g, ib = theme.info.b,
+        ar = theme.accent.r, ag = theme.accent.g, ab = theme.accent.b,
+        ebr = brighten_color(&theme.error, 40),
+        sbr = brighten_color(&theme.success, 40),
+        wbr = brighten_color(&theme.warning, 40),
+        hbr = brighten_color(&theme.header, 40),
+        ibr = brighten_color(&theme.info, 40),
+    )
+}
+
+fn export_ghostty(theme: &crate::theme::Theme) -> String {
+    let bg = darken_color(&theme.header, 200);
+    let fg = brighten_color(&theme.value, 0);
+    let cursor = brighten_color(&theme.accent, 30);
+    format!(
+        r##"# Ghostty theme derived from forge "{name}"
+[color]
+background = {bg}
+foreground = {fg}
+cursor-color = {cursor}
+cursor-text = {bg}
+selection-foreground = {fg}
+selection-background = #{hr:02x}{hg:02x}{hb:02x}
+
+# Black / Bright Black
+color0 = {bg}
+color8 = #{mr:02x}{mg:02x}{mb:02x}
+
+# Red / Bright Red
+color1 = #{er:02x}{eg:02x}{eb:02x}
+color9 = {ebr}
+
+# Green / Bright Green
+color2 = #{sr:02x}{sg:02x}{sb:02x}
+color10 = {sbr}
+
+# Yellow / Bright Yellow
+color3 = #{wr:02x}{wg:02x}{wb:02x}
+color11 = {wbr}
+
+# Blue / Bright Blue
+color4 = #{hr:02x}{hg:02x}{hb:02x}
+color12 = {hbr}
+
+# Magenta / Bright Magenta
+color5 = #{ir:02x}{ig:02x}{ib:02x}
+color13 = {ibr}
+
+# Cyan / Bright Cyan
+color6 = #{ar:02x}{ag:02x}{ab:02x}
+color14 = #{ar:02x}{ag:02x}{ab:02x}
+
+# White / Bright White
+color7 = {fg}
+color15 = {fg}
+"##,
+        name = theme.name,
+        bg = bg, fg = fg, cursor = cursor,
+        hr = theme.header.r, hg = theme.header.g, hb = theme.header.b,
+        mr = theme.muted.r, mg = theme.muted.g, mb = theme.muted.b,
+        er = theme.error.r, eg = theme.error.g, eb = theme.error.b,
+        sr = theme.success.r, sg = theme.success.g, sb = theme.success.b,
+        wr = theme.warning.r, wg = theme.warning.g, wb = theme.warning.b,
+        ir = theme.info.r, ig = theme.info.g, ib = theme.info.b,
+        ar = theme.accent.r, ag = theme.accent.g, ab = theme.accent.b,
+        ebr = brighten_color(&theme.error, 40),
+        sbr = brighten_color(&theme.success, 40),
+        wbr = brighten_color(&theme.warning, 40),
+        hbr = brighten_color(&theme.header, 40),
+        ibr = brighten_color(&theme.info, 40),
+    )
 }

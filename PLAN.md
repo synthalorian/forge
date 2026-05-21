@@ -66,13 +66,13 @@ Every module across all six pillars is fully implemented and tested:
 
 The project is feature-complete. Remaining items are polish and release management:
 
-### v0.3.0 Milestone
+### v0.3.0 Milestone ✅
 
-- [ ] Tag and cut v0.3.0 release on GitHub
-- [ ] Add CLI aliases: `forge q` → quench, `forge s` → strike, `forge l` → list
-- [ ] `forge theme export` — Export custom theme to Alacritty/Kitty/Ghostty TOML format
-- [ ] Show backup type (Full/Incremental) in `forge status` and `forge list` output
-- [ ] Add `forge breathe pipe` — Multi-step agent pipeline definitions in TOML
+- [x] Tag and cut v0.3.0 release on GitHub
+- [x] Add CLI aliases: `forge q` → quench, `forge s` → strike, `forge l` → list
+- [x] `forge theme export` — Export custom theme to Alacritty/Kitty/Ghostty TOML format
+- [x] Show backup type (Full/Incremental) in `forge status` and `forge list` output
+- [x] Add `forge breathe pipe` — Multi-step agent pipeline definitions in TOML
 
 ### v1.0 Stretch Goals
 
