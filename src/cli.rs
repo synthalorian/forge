@@ -345,6 +345,17 @@ pub enum MeltAction {
         #[arg(help = "Path to markdown file (use '-' for stdin)")]
         path: Option<String>,
     },
+    #[command(about = "Generate an abstract image from a text prompt")]
+    Image {
+        #[arg(help = "Description of the image to generate")]
+        prompt: String,
+        #[arg(short, long, help = "Output width in pixels (default: 800)")]
+        width: Option<u32>,
+        #[arg(short, long, help = "Output height in pixels (default: 600)")]
+        height: Option<u32>,
+        #[arg(short, long, help = "Output path (default: ~/.forge/images/)")]
+        output: Option<String>,
+    },
 }
 
 #[derive(Args)]

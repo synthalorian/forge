@@ -4,6 +4,7 @@
 
 use anyhow::{Context, Result};
 use image::GenericImageView;
+use image::Rgb;
 use std::collections::HashMap;
 
 use crate::cli::{MeltAction, MeltArgs};
@@ -23,6 +24,12 @@ pub fn run_melt(cfg: &Config, args: &MeltArgs) -> Result<()> {
             description,
         } => run_diagram(cfg, diag_type, description),
         MeltAction::Markdown { path } => run_markdown(cfg, path),
+        MeltAction::Image {
+            prompt,
+            width,
+            height,
+            output,
+        } => run_image(cfg, prompt, width, height, output),
     }
 }
 
@@ -982,6 +989,373 @@ fn extract_palette_from_image(
     println!();
 
     Ok(())
+}
+
+// ── Procedural Image Generation ────────────────────────────────────
+
+fn run_image(
+    cfg: &Config,
+    prompt: &str,
+    width: &Option<u32>,
+    height: &Option<u32>,
+    output: &Option<String>,
+) -> Result<()> {
+    use image::{ImageBuffer, Rgb, RgbImage};
+    use std::path::PathBuf;
+
+    let theme = crate::theme::load_from_config(cfg);
+    let w = width.unwrap_or(800);
+    let h = height.unwrap_or(600);
+
+    let img_dir = match output {
+        Some(p) => PathBuf::from(p),
+        None => {
+            let xdg = std::env::var("XDG_DATA_HOME").unwrap_or_else(|_| {
+                format!("{}/.local/share", std::env::var("HOME").unwrap_or_default())
+            });
+            PathBuf::from(xdg).join("forge").join("images")
+        }
+    };
+    std::fs::create_dir_all(&img_dir)?;
+    let colors = parse_prompt_colors(prompt);
+
+    println!(
+        "{}",
+        crate::theme::style_bold_header("Forge Melt — Image Generation", theme)
+    );
+    println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
+    println!(
+        "  {} {}",
+        crate::theme::style_label("Prompt:", theme),
+        crate::theme::style_value(prompt, theme)
+    );
+    println!(
+        "  {} {}×{}",
+        crate::theme::style_label("Size:", theme),
+        crate::theme::style_value(&w.to_string(), theme),
+        crate::theme::style_value(&h.to_string(), theme)
+    );
+    println!(
+        "  {} {} colors",
+        crate::theme::style_label("Palette:", theme),
+        crate::theme::style_value(&colors.len().to_string(), theme)
+    );
+
+    let mut img: RgbImage = ImageBuffer::new(w, h);
+    let seed = prompt
+        .bytes()
+        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
+    let mut rng = SimpleRng::new(seed);
+
+    let bg_top = colors[0 % colors.len()];
+    let bg_bot = colors[1 % colors.len()];
+    for y in 0..h {
+        let t = y as f64 / h.max(1) as f64;
+        let r = lerp(bg_top.0, bg_bot.0, t);
+        let g = lerp(bg_top.1, bg_bot.1, t);
+        let b = lerp(bg_top.2, bg_bot.2, t);
+        for x in 0..w {
+            img.put_pixel(x, y, Rgb([r as u8, g as u8, b as u8]));
+        }
+    }
+
+    for i in 0..(12 + (seed % 8) as usize) {
+        let col = colors[i % colors.len()];
+        let alpha = rng.gen_range(30u32, 180u32) as u8;
+        match rng.gen_range(0u32, 3u32) {
+            0 => draw_filled_circle(
+                &mut img,
+                rng.gen_range(0u32, w),
+                rng.gen_range(0u32, h),
+                rng.gen_range(20u32, w.min(h) / 3),
+                col,
+                alpha,
+            ),
+            1 => draw_filled_rect(
+                &mut img,
+                rng.gen_range(0u32, w),
+                rng.gen_range(0u32, h),
+                rng.gen_range(0u32, w.min(w / 3)),
+                rng.gen_range(0u32, h.min(h / 3)),
+                col,
+                alpha,
+            ),
+            _ => draw_line(
+                &mut img,
+                rng.gen_range(0u32, w),
+                rng.gen_range(0u32, h),
+                rng.gen_range(0u32, w),
+                rng.gen_range(0u32, h),
+                col,
+                2 + (i as u32 % 6),
+            ),
+        }
+    }
+
+    let noise = 10 + (seed % 15) as u8;
+    for _ in 0..(w * h / 20) {
+        let x = rng.gen_range(0u32, w);
+        let y = rng.gen_range(0u32, h);
+        let px = img.get_pixel(x, y);
+        let nr = (px[0] as i16 + rng.gen_range(0u32, noise as u32 * 2) as i16 - noise as i16)
+            .clamp(0, 255) as u8;
+        let ng = (px[1] as i16 + rng.gen_range(0u32, noise as u32 * 2) as i16 - noise as i16)
+            .clamp(0, 255) as u8;
+        let nb = (px[2] as i16 + rng.gen_range(0u32, noise as u32 * 2) as i16 - noise as i16)
+            .clamp(0, 255) as u8;
+        img.put_pixel(x, y, Rgb([nr, ng, nb]));
+    }
+
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let slug: String = prompt
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == ' ')
+        .take(30)
+        .collect::<String>()
+        .replace(' ', "_");
+    let outpath = img_dir.join(format!("forge_{}_{}.png", timestamp, slug));
+    img.save(&outpath)?;
+    let file_size = std::fs::metadata(&outpath).map(|m| m.len()).unwrap_or(0);
+
+    println!();
+    println!(
+        "  {} {}",
+        crate::theme::style_success("✓", theme),
+        crate::theme::style_value("Image generated!", theme)
+    );
+    println!(
+        "  {} {}",
+        crate::theme::style_label("Saved:", theme),
+        crate::theme::style_value(&outpath.display().to_string(), theme)
+    );
+    println!(
+        "  {} {}",
+        crate::theme::style_label("Size:", theme),
+        crate::theme::style_value(&crate::utils::format_size(file_size), theme)
+    );
+    println!();
+    println!("  {}", crate::theme::style_header("Color Palette", theme));
+    for (i, (r, g, b)) in colors.iter().enumerate() {
+        println!(
+            "  {} {}",
+            crate::theme::style_value(&format!("{}.", i + 1), theme),
+            crate::theme::style_accent(&format!("#{:02X}{:02X}{:02X}", r, g, b), theme)
+        );
+    }
+    println!();
+    Ok(())
+}
+
+fn parse_prompt_colors(prompt: &str) -> Vec<(u8, u8, u8)> {
+    let lower = prompt.to_lowercase();
+    let named: Vec<(&str, (u8, u8, u8))> = vec![
+        ("red", (220, 40, 60)),
+        ("crimson", (180, 20, 40)),
+        ("fire", (255, 80, 30)),
+        ("orange", (255, 140, 30)),
+        ("yellow", (240, 220, 50)),
+        ("gold", (255, 200, 60)),
+        ("green", (40, 180, 60)),
+        ("forest", (30, 120, 50)),
+        ("emerald", (20, 200, 120)),
+        ("teal", (20, 180, 180)),
+        ("cyan", (30, 210, 230)),
+        ("blue", (40, 100, 220)),
+        ("ocean", (20, 100, 200)),
+        ("sky", (100, 180, 240)),
+        ("indigo", (80, 60, 200)),
+        ("purple", (140, 40, 200)),
+        ("violet", (180, 60, 200)),
+        ("magenta", (220, 40, 180)),
+        ("pink", (240, 100, 180)),
+        ("rose", (220, 80, 120)),
+        ("brown", (140, 80, 50)),
+        ("grey", (140, 140, 150)),
+        ("gray", (140, 140, 150)),
+        ("white", (240, 240, 245)),
+        ("black", (20, 20, 30)),
+        ("neon", (0, 255, 200)),
+        ("synthwave", (143, 0, 255)),
+    ];
+
+    let mut p = Vec::new();
+    if lower.contains("sunset") {
+        p.extend_from_slice(&[
+            (255, 100, 60),
+            (200, 50, 100),
+            (255, 180, 80),
+            (100, 20, 80),
+        ]);
+    } else if lower.contains("synthwave") || lower.contains("neon") || lower.contains("retro") {
+        p.extend_from_slice(&[(143, 0, 255), (255, 0, 128), (3, 237, 249), (255, 126, 219)]);
+    } else if lower.contains("ocean") || lower.contains("sea") || lower.contains("water") {
+        p.extend_from_slice(&[
+            (20, 80, 180),
+            (40, 160, 210),
+            (10, 200, 200),
+            (200, 230, 255),
+        ]);
+    } else if lower.contains("forest") || lower.contains("nature") {
+        p.extend_from_slice(&[(30, 100, 40), (60, 160, 60), (100, 180, 60), (80, 50, 30)]);
+    } else if lower.contains("space") || lower.contains("galaxy") {
+        p.extend_from_slice(&[(10, 10, 40), (60, 20, 100), (140, 60, 180), (200, 160, 255)]);
+    } else if lower.contains("fire") || lower.contains("lava") {
+        p.extend_from_slice(&[(200, 30, 10), (255, 120, 20), (255, 200, 50), (100, 10, 5)]);
+    } else if lower.contains("ice") || lower.contains("winter") {
+        p.extend_from_slice(&[
+            (200, 230, 255),
+            (140, 200, 240),
+            (80, 160, 220),
+            (255, 255, 255),
+        ]);
+    } else {
+        p.extend_from_slice(&[(100, 60, 180), (60, 140, 220), (220, 80, 140)]);
+    }
+
+    for (name, color) in &named {
+        if lower.contains(name) {
+            p.push(*color);
+        }
+    }
+    p.dedup();
+    p.truncate(6);
+    if p.len() < 2 {
+        p.push((60, 60, 180));
+        p.push((180, 60, 60));
+    }
+    p
+}
+
+fn lerp(a: u8, b: u8, t: f64) -> f64 {
+    a as f64 + (b as f64 - a as f64) * t
+}
+
+fn draw_filled_circle(
+    img: &mut image::RgbImage,
+    cx: u32,
+    cy: u32,
+    radius: u32,
+    color: (u8, u8, u8),
+    alpha: u8,
+) {
+    let r = radius as i32;
+    for dy in -r..=r {
+        for dx in -r..=r {
+            if dx * dx + dy * dy <= r * r {
+                let px = cx as i32 + dx;
+                let py = cy as i32 + dy;
+                if px >= 0 && px < img.width() as i32 && py >= 0 && py < img.height() as i32 {
+                    let pix = img.get_pixel(px as u32, py as u32);
+                    img.put_pixel(
+                        px as u32,
+                        py as u32,
+                        Rgb([
+                            blend(pix[0], color.0, alpha),
+                            blend(pix[1], color.1, alpha),
+                            blend(pix[2], color.2, alpha),
+                        ]),
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn draw_filled_rect(
+    img: &mut image::RgbImage,
+    x1: u32,
+    y1: u32,
+    x2: u32,
+    y2: u32,
+    color: (u8, u8, u8),
+    alpha: u8,
+) {
+    for y in y1..=y2.min(img.height() - 1) {
+        for x in x1..=x2.min(img.width() - 1) {
+            let pix = img.get_pixel(x, y);
+            img.put_pixel(
+                x,
+                y,
+                Rgb([
+                    blend(pix[0], color.0, alpha),
+                    blend(pix[1], color.1, alpha),
+                    blend(pix[2], color.2, alpha),
+                ]),
+            );
+        }
+    }
+}
+
+fn draw_line(
+    img: &mut image::RgbImage,
+    x1: u32,
+    y1: u32,
+    x2: u32,
+    y2: u32,
+    color: (u8, u8, u8),
+    thickness: u32,
+) {
+    let dx = (x2 as i32 - x1 as i32).abs();
+    let dy = -(y2 as i32 - y1 as i32).abs();
+    let sx = if x1 < x2 { 1 } else { -1 };
+    let sy = if y1 < y2 { 1 } else { -1 };
+    let mut err = dx + dy;
+    let mut x = x1 as i32;
+    let mut y = y1 as i32;
+    loop {
+        for t in 0..thickness as i32 {
+            for ty in 0..thickness as i32 {
+                let px = (x + t - thickness as i32 / 2)
+                    .max(0)
+                    .min(img.width() as i32 - 1);
+                let py = (y + ty - thickness as i32 / 2)
+                    .max(0)
+                    .min(img.height() as i32 - 1);
+                img.put_pixel(px as u32, py as u32, Rgb([color.0, color.1, color.2]));
+            }
+        }
+        if x == x2 as i32 && y == y2 as i32 {
+            break;
+        }
+        let e2 = 2 * err;
+        if e2 >= dy {
+            err += dy;
+            x += sx;
+        }
+        if e2 <= dx {
+            err += dx;
+            y += sy;
+        }
+    }
+}
+
+fn blend(bg: u8, fg: u8, alpha: u8) -> u8 {
+    ((fg as u16 * alpha as u16 + bg as u16 * (255 - alpha as u16)) / 255) as u8
+}
+
+struct SimpleRng {
+    state: u64,
+}
+impl SimpleRng {
+    fn new(seed: u64) -> Self {
+        Self {
+            state: if seed == 0 { 1 } else { seed },
+        }
+    }
+    fn next(&mut self) -> u64 {
+        self.state = self
+            .state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        self.state >> 33
+    }
+    fn gen_range(&mut self, lo: u32, hi: u32) -> u32 {
+        if lo >= hi {
+            return lo;
+        }
+        lo + (self.next() as u32) % (hi - lo)
+    }
 }
 
 #[cfg(test)]
