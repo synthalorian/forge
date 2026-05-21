@@ -91,9 +91,9 @@ The project is feature-complete. Remaining items are polish and release manageme
 
 - [x] Session persistence — Store agent conversation state in agents.db for continuity across restarts
 
-### v0.8.0 Milestone
+### v0.8.0 Milestone ✅
 
-- [ ] `forge bridge sync` — Sync task state across platforms (Hermes, local tasks, schedules)
+- [x] `forge bridge sync` — Sync task state across platforms (Hermes, local tasks, schedules)
 
 ### v1.0 Stretch Goals
 
