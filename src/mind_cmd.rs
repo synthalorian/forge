@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::fs;
 
-use crate::cli::{BreatheAction, BreatheArgs, StrikeArgs};
+use crate::cli::{BreatheAction, BreatheArgs, SessionAction, StrikeArgs};
 use crate::config::Config;
 
 /// Run the `forge breathe` command — agent status dashboard.
@@ -20,6 +20,7 @@ pub fn run_breathe(cfg: &Config, args: &BreatheArgs) -> Result<()> {
         Some(BreatheAction::Vault) => breathe_vault(theme),
         Some(BreatheAction::Prompts) => breathe_prompts(theme),
         Some(BreatheAction::Pipe { path }) => run_pipe(cfg, path),
+        Some(BreatheAction::Sessions { action }) => run_sessions(cfg, action),
     }
 }
 
@@ -416,5 +417,173 @@ fn run_pipe(cfg: &Config, path: &str) -> Result<()> {
     );
     println!();
 
+    Ok(())
+}
+
+fn run_sessions(cfg: &Config, action: &Option<SessionAction>) -> Result<()> {
+    let theme = crate::theme::load_from_config(cfg);
+    let conn = connect_session_db(cfg)?;
+    match action {
+        Some(SessionAction::List { agent: _, limit }) => {
+            let l = limit.unwrap_or(20);
+            let s = list_sessions_internal(&conn, l)?;
+            print_sessions_internal(&s, theme);
+        }
+        None => {
+            let s = list_sessions_internal(&conn, 20)?;
+            print_sessions_internal(&s, theme);
+        }
+        Some(SessionAction::Show { id }) => {
+            let s = get_session_internal(&conn, *id)?;
+            let msgs = get_messages_internal(&conn, *id)?;
+            println!();
+            println!(
+                "  #{} {}",
+                theme_style_value(&s.0.to_string(), theme),
+                theme_style_accent(&s.1, theme)
+            );
+            println!("  {}", theme_style_border(&"-".repeat(50), theme));
+            for (r, c) in &msgs {
+                let p = c.chars().take(100).collect::<String>();
+                let tag = if r == "user" { "U" } else { "A" };
+                println!(
+                    "  {} {}",
+                    theme_style_value(tag, theme),
+                    theme_style_value(&p, theme)
+                );
+            }
+            println!();
+        }
+        Some(SessionAction::Delete { id }) => {
+            delete_session_internal(&conn, *id)?;
+            println!(
+                "  \u{2713} Session #{} deleted",
+                theme_style_value(&id.to_string(), theme)
+            );
+        }
+        Some(SessionAction::Create { agent, message }) => {
+            let id = create_session_internal(&conn, agent, message.as_deref())?;
+            println!(
+                "  \u{2713} Session #{} for {}",
+                theme_style_value(&id.to_string(), theme),
+                theme_style_accent(agent, theme)
+            );
+        }
+    }
+    Ok(())
+}
+
+fn print_sessions_internal(s: &[(i64, String, i64, String)], theme: &crate::theme::Theme) {
+    println!();
+    println!("  {}", theme_style_bold_header("Agent Sessions", theme));
+    println!("  {}", theme_style_border(&"-".repeat(50), theme));
+    if s.is_empty() {
+        println!("  {}", theme_style_muted("No sessions found.", theme));
+    } else {
+        for (id, name, count, summary) in s {
+            let p = summary.chars().take(40).collect::<String>();
+            println!(
+                "  {} {} {} {}",
+                theme_style_value(&id.to_string(), theme),
+                theme_style_accent(name, theme),
+                theme_style_value(&count.to_string(), theme),
+                theme_style_muted(&p, theme)
+            );
+        }
+    }
+    println!();
+}
+
+fn theme_style_value(t: &str, theme: &crate::theme::Theme) -> crate::theme::StyledString {
+    crate::theme::style_value(t, theme)
+}
+fn theme_style_accent(t: &str, theme: &crate::theme::Theme) -> crate::theme::StyledString {
+    crate::theme::style_accent(t, theme)
+}
+fn theme_style_muted(t: &str, theme: &crate::theme::Theme) -> crate::theme::StyledString {
+    crate::theme::style_muted(t, theme)
+}
+fn theme_style_border(t: &str, theme: &crate::theme::Theme) -> crate::theme::StyledString {
+    crate::theme::style_border(t, theme)
+}
+fn theme_style_bold_header(t: &str, theme: &crate::theme::Theme) -> crate::theme::StyledString {
+    crate::theme::style_bold_header(t, theme)
+}
+
+fn connect_session_db(cfg: &Config) -> Result<rusqlite::Connection> {
+    let p = cfg
+        .db_path
+        .parent()
+        .unwrap_or(std::path::Path::new("/tmp"))
+        .join("agents.db");
+    if let Some(parent) = p.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let conn = rusqlite::Connection::open(&p)?;
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS agent_sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, agent_name TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '', message_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS session_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL REFERENCES agent_sessions(id), role TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL);")?;
+    Ok(conn)
+}
+
+fn create_session_internal(
+    conn: &rusqlite::Connection,
+    agent: &str,
+    msg: Option<&str>,
+) -> Result<i64> {
+    let now = chrono::Utc::now().to_rfc3339();
+    let summary = msg
+        .map(|m| m.chars().take(100).collect::<String>())
+        .unwrap_or_default();
+    conn.execute("INSERT INTO agent_sessions (agent_name, summary, message_count, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)", (agent, &summary, if msg.is_some() { 1 } else { 0 }, &now, &now))?;
+    let id = conn.last_insert_rowid();
+    if let Some(m) = msg {
+        conn.execute("INSERT INTO session_messages (session_id, role, content, created_at) VALUES (?1, 'user', ?2, ?3)", (id, m, &now))?;
+    }
+    Ok(id)
+}
+
+fn list_sessions_internal(
+    conn: &rusqlite::Connection,
+    limit: usize,
+) -> Result<Vec<(i64, String, i64, String)>> {
+    let mut stmt = conn.prepare("SELECT id, agent_name, message_count, summary FROM agent_sessions ORDER BY updated_at DESC LIMIT ?1")?;
+    let rows = stmt.query_map([limit as i64], |r| {
+        Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
+    })?;
+    let mut v = Vec::new();
+    for row in rows {
+        v.push(row?);
+    }
+    Ok(v)
+}
+
+fn get_session_internal(
+    conn: &rusqlite::Connection,
+    id: i64,
+) -> Result<(i64, String, i64, String)> {
+    conn.query_row(
+        "SELECT id, agent_name, message_count, summary FROM agent_sessions WHERE id = ?1",
+        [id],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+    )
+    .with_context(|| format!("Session {id} not found"))
+}
+
+fn get_messages_internal(conn: &rusqlite::Connection, id: i64) -> Result<Vec<(String, String)>> {
+    let mut stmt = conn
+        .prepare("SELECT role, content FROM session_messages WHERE session_id = ?1 ORDER BY id")?;
+    let rows = stmt.query_map([id], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    let mut v = Vec::new();
+    for row in rows {
+        v.push(row?);
+    }
+    Ok(v)
+}
+
+fn delete_session_internal(conn: &rusqlite::Connection, id: i64) -> Result<()> {
+    conn.execute("DELETE FROM session_messages WHERE session_id = ?1", [id])?;
+    let n = conn.execute("DELETE FROM agent_sessions WHERE id = ?1", [id])?;
+    if n == 0 {
+        anyhow::bail!("Session {id} not found");
+    }
     Ok(())
 }

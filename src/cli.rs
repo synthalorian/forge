@@ -228,6 +228,39 @@ pub enum BreatheAction {
         #[arg(help = "Path to the pipeline TOML file")]
         path: String,
     },
+    #[command(about = "Manage agent conversation sessions")]
+    Sessions {
+        #[command(subcommand)]
+        action: Option<SessionAction>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum SessionAction {
+    #[command(about = "List all agent sessions")]
+    List {
+        #[arg(short, long, help = "Filter by agent name")]
+        agent: Option<String>,
+        #[arg(short, long, help = "Maximum results (default 20)")]
+        limit: Option<usize>,
+    },
+    #[command(about = "Show session details and messages")]
+    Show {
+        #[arg(help = "Session ID")]
+        id: i64,
+    },
+    #[command(about = "Delete a session")]
+    Delete {
+        #[arg(help = "Session ID")]
+        id: i64,
+    },
+    #[command(about = "Create a new session")]
+    Create {
+        #[arg(help = "Agent name")]
+        agent: String,
+        #[arg(help = "Initial message")]
+        message: Option<String>,
+    },
 }
 
 #[derive(Args)]
