@@ -1,3 +1,5 @@
+require "open3"
+
 class FlameController < ApplicationController
   include AnvilHelper
 
@@ -14,8 +16,14 @@ class FlameController < ApplicationController
   end
 
   def search_scripture
-    query = params[:query].presence
-    @search_results = run_forge_command("word", "search", query.to_s)
+    query = sanitize_query(params[:query])
+    unless query
+      render turbo_stream: turbo_stream.replace("flame-search-results",
+        partial: "flame/command_output",
+        locals: { output: "Invalid or empty query.", title: "Scripture Search" })
+      return
+    end
+    @search_results = run_forge_command("word", "search", query)
     render turbo_stream: turbo_stream.replace("flame-search-results",
       partial: "flame/command_output",
       locals: { output: @search_results, title: "Scripture Search" })
@@ -43,7 +51,7 @@ class FlameController < ApplicationController
   end
 
   def journal_search
-    @query = params[:query].presence
+    @query = sanitize_query(params[:query])
     @forge_available = forge_available?
     @page = 1
     @per_page = 20
@@ -68,9 +76,16 @@ class FlameController < ApplicationController
   end
 
   def lookup_reference
-    book = params[:book].presence
-    chapter = params[:chapter].presence
-    verse = params[:verse].presence
+    book = sanitize_query(params[:book])
+    chapter = params[:chapter].presence&.strip
+    verse = params[:verse].presence&.strip
+
+    unless book
+      render turbo_stream: turbo_stream.replace("flame-reference-results",
+        partial: "flame/command_output",
+        locals: { output: "Invalid reference.", title: "Reference Lookup" })
+      return
+    end
 
     reference = [book, chapter, verse].compact.join(" ")
     @reference_result = run_forge_command("word", "reference", reference)
@@ -161,6 +176,14 @@ class FlameController < ApplicationController
 
   def spirit_db_path
     File.join(File.dirname(Forge::Config.db_path), "db", "spirit.db")
+  end
+
+  def sanitize_query(q)
+    return nil if q.nil? || q.strip.empty?
+    q = q.strip
+    return nil if q.length > 200
+    return nil if q.match?(/[;&|`$(){}]/)
+    q
   end
 
   def run_forge_command(*args)

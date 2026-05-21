@@ -144,9 +144,11 @@ pub fn run_temper(cfg: &Config) -> Result<()> {
         let chunks_dir = cfg.archive_dir.join("chunks");
         let mut missing_chunks = 0u64;
         for hash in &chunk_hashes {
+            let prefix: String = hash.chars().take(2).collect();
+            let rest: String = hash.chars().skip(2).collect();
             let chunk_path = chunks_dir
-                .join(&hash[..2])
-                .join(format!("{}.zst", &hash[2..]));
+                .join(&prefix)
+                .join(format!("{}.zst", rest));
             if !chunk_path.exists() {
                 missing_chunks += 1;
             }
@@ -648,6 +650,7 @@ mod tests {
                 keep_monthly: 12,
             },
             theme: "synthwave84".to_string(),
+            llama_swap_config: tmp.path().join("llama-swap-config.yaml"),
         }
     }
 

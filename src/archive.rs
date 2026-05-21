@@ -372,22 +372,23 @@ mod tests {
                 keep_monthly: 12,
             },
             theme: "synthwave84".to_string(),
+            llama_swap_config: tmp.path().join("llama-swap-config.yaml"),
         }
     }
 
     fn create_test_repo(tmp: &TempDir) -> String {
         let dir = tmp.path().join("testrepo.git");
-        fs::create_dir_all(&dir).expect("create dir");
-        fs::write(dir.join("HEAD"), "ref: refs/heads/main\n").expect("HEAD");
-        fs::create_dir_all(dir.join("objects/pack")).expect("objects/pack");
-        fs::create_dir_all(dir.join("refs/heads")).expect("refs/heads");
-        fs::write(dir.join("refs/heads/main"), "abc123def456\n").expect("ref");
+        fs::create_dir_all(&dir).expect("test: create test repo dir");
+        fs::write(dir.join("HEAD"), "ref: refs/heads/main\n").expect("test: write HEAD file");
+        fs::create_dir_all(dir.join("objects/pack")).expect("test: create objects/pack dir");
+        fs::create_dir_all(dir.join("refs/heads")).expect("test: create refs/heads dir");
+        fs::write(dir.join("refs/heads/main"), "abc123def456\n").expect("test: write main ref");
         fs::write(
             dir.join("config"),
             "[core]\n\trepositoryformatversion = 0\n",
         )
-        .expect("config");
-        dir.to_str().expect("path").to_string()
+        .expect("test: write config");
+        dir.to_str().expect("test temp dir should be valid UTF-8").to_string()
     }
 
     #[test]
@@ -435,7 +436,8 @@ mod tests {
         assert!(verify_archive(&archive_path, &sha256)?);
 
         let extract_dir = tmp.path().join("extracted");
-        extract_archive(&archive_path, extract_dir.to_str().expect("path"))?;
+        let extract_str = extract_dir.to_str().ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
+        extract_archive(&archive_path, extract_str)?;
 
         let extracted = extract_dir.join("testrepo.git");
         assert!(extracted.exists());
@@ -465,10 +467,11 @@ mod tests {
         assert!(Path::new(&result.manifest_path).exists());
 
         let extract_dir = tmp.path().join("dedup_extracted");
+        let extract_str = extract_dir.to_str().ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
         extract_dedup_archive(
             &cfg,
             &result.manifest_path,
-            extract_dir.to_str().expect("path"),
+            extract_str,
         )?;
 
         let extracted = extract_dir.join("testrepo.git");
@@ -512,7 +515,8 @@ mod tests {
         assert!(verify_archive(&archive_path, &sha256)?);
 
         let extract_dir = tmp.path().join("extracted_hc");
-        extract_archive(&archive_path, extract_dir.to_str().expect("path"))?;
+        let extract_str = extract_dir.to_str().ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
+        extract_archive(&archive_path, extract_str)?;
         assert!(extract_dir.join("testrepo.git").exists());
 
         Ok(())

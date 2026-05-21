@@ -582,6 +582,7 @@ mod tests {
                 keep_monthly: 12,
             },
             theme: "dracula".to_string(),
+            llama_swap_config: std::path::PathBuf::from("/tmp/llama-swap-config.yaml"),
         };
         assert_eq!(load_from_config(&cfg).name, "dracula");
     }

@@ -787,6 +787,16 @@ pub fn safe_command(cmd: &str) -> String {
         .unwrap_or_default()
 }
 
+/// Safe alternative to `safe_command()` that avoids shell injection.
+/// Uses explicit argument arrays instead of `sh -c`.
+pub fn safe_command_args(program: &str, args: &[&str]) -> String {
+    std::process::Command::new(program)
+        .args(args)
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+        .unwrap_or_default()
+}
+
 fn parse_memory_info() -> String {
     let output = safe_command("free -h 2>/dev/null");
     let lines: Vec<&str> = output.lines().collect();
@@ -868,6 +878,7 @@ mod tests {
                 keep_monthly: 12,
             },
             theme: "synthwave84".to_string(),
+            llama_swap_config: tmp.path().join("llama-swap-config.yaml"),
         }
     }
 

@@ -24,21 +24,17 @@ class Anvil::BackupsController < ApplicationController
   def trigger
     # Atomic check-and-set to prevent duplicate backup triggers
     cache_key = "forge_backup_running"
-    if Rails.cache.read(cache_key)
+    unless Rails.cache.write(cache_key, true, unless_exist: true, expires_in: 5.minutes)
       redirect_to anvil_backups_path, alert: "A backup is already in progress."
       return
     end
 
-    # Write a sentinel value before enqueuing to close the race window
-    Rails.cache.write(cache_key, true, expires_in: 5.minutes)
-
     path = params[:path].to_s.strip
     if path.present?
-      # Validate path is not traversing outside allowed dirs
-      expanded = File.expand_path(path)
-      unless expanded.start_with?(File.expand_path("~"))
+      known_repos = forge_db.backups.map { |b| b[:repo_path] }
+      unless known_repos.include?(path)
         Rails.cache.delete(cache_key)
-        redirect_to anvil_backups_path, alert: "Invalid path."
+        redirect_to anvil_backups_path, alert: "Unknown repository path."
         return
       end
     end

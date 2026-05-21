@@ -80,25 +80,24 @@ RSpec.describe Forge::Statistics do
   end
 
   describe "#top_repos" do
-    let(:backups) do
+    let(:repos) do
       [
-        { repo_name: "alpha", size_bytes: 1000, created_at: "2026-01-01T00:00:00Z" },
-        { repo_name: "alpha", size_bytes: 2000, created_at: "2026-01-02T00:00:00Z" },
-        { repo_name: "alpha", size_bytes: 1500, created_at: "2026-01-03T00:00:00Z" },
-        { repo_name: "beta", size_bytes: 3000, created_at: "2026-01-04T00:00:00Z" },
-        { repo_name: "beta", size_bytes: 4000, created_at: "2026-01-05T00:00:00Z" },
-        { repo_name: "gamma", size_bytes: 5000, created_at: "2026-01-06T00:00:00Z" },
+        { name: "alpha", count: 3, total_size: 4500 },
+        { name: "beta", count: 2, total_size: 7000 },
+        { name: "gamma", count: 1, total_size: 5000 },
       ]
     end
 
+    before do
+      allow(database).to receive(:top_repos_by_count).and_return(repos)
+    end
+
     it "returns repos sorted by backup count descending" do
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
       result = subject.top_repos(limit: 5)
       expect(result.map { |r| r[:name] }).to eq(%w[alpha beta gamma])
     end
 
     it "includes total size per repo" do
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
       result = subject.top_repos(limit: 5)
       alpha = result.find { |r| r[:name] == "alpha" }
       expect(alpha[:total_size]).to eq(4500)
@@ -106,42 +105,40 @@ RSpec.describe Forge::Statistics do
     end
 
     it "respects the limit parameter" do
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
+      allow(database).to receive(:top_repos_by_count).with(limit: 2).and_return(repos.first(2))
       result = subject.top_repos(limit: 2)
       expect(result.size).to eq(2)
     end
 
     it "returns empty array when no backups" do
-      allow(database).to receive(:backups).with(limit: 10_000).and_return([])
+      allow(database).to receive(:top_repos_by_count).and_return([])
       expect(subject.top_repos(limit: 5)).to eq([])
     end
   end
 
   describe "#backup_frequency" do
     it "returns weekly grouped counts" do
-      backups = 12.times.map do |i|
-        { repo_name: "repo", size_bytes: 1000, created_at: (Time.now - (i * 7).days).iso8601 }
-      end
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
+      weeks = 6.times.map { |i| { week: "2026-W#{format('%02d', i + 1)}", count: (i + 1) * 2 } }
+      allow(database).to receive(:backup_frequency_weeks).and_return(weeks)
       result = subject.backup_frequency
       expect(result).to all(include(:week, :count))
       expect(result.size).to be <= 12
     end
 
     it "returns empty array when no backups" do
-      allow(database).to receive(:backups).with(limit: 10_000).and_return([])
+      allow(database).to receive(:backup_frequency_weeks).and_return([])
       expect(subject.backup_frequency).to eq([])
     end
   end
 
   describe "#disk_usage_trend" do
     it "returns cumulative size over time" do
-      backups = [
-        { size_bytes: 1000, created_at: "2026-01-01T00:00:00Z" },
-        { size_bytes: 2000, created_at: "2026-01-02T00:00:00Z" },
-        { size_bytes: 3000, created_at: "2026-01-03T00:00:00Z" },
+      trend = [
+        { date: "2026-01-01T00:00:00Z", cumulative_size: 1000 },
+        { date: "2026-01-02T00:00:00Z", cumulative_size: 3000 },
+        { date: "2026-01-03T00:00:00Z", cumulative_size: 6000 },
       ]
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
+      allow(database).to receive(:disk_usage_trend).and_return(trend)
       result = subject.disk_usage_trend
       expect(result[0][:cumulative_size]).to eq(1000)
       expect(result[1][:cumulative_size]).to eq(3000)
@@ -149,29 +146,21 @@ RSpec.describe Forge::Statistics do
     end
 
     it "returns at most 12 entries" do
-      backups = 20.times.map do |i|
-        { size_bytes: 1000, created_at: (Time.now - (i * 1).days).iso8601 }
-      end
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
+      trend = 12.times.map { |i| { date: "2026-01-#{format('%02d', i + 1)}T00:00:00Z", cumulative_size: (i + 1) * 1000 } }
+      allow(database).to receive(:disk_usage_trend).and_return(trend)
       result = subject.disk_usage_trend
       expect(result.size).to eq(12)
     end
 
     it "returns empty array when no backups" do
-      allow(database).to receive(:backups).with(limit: 10_000).and_return([])
+      allow(database).to receive(:disk_usage_trend).and_return([])
       expect(subject.disk_usage_trend).to eq([])
     end
   end
 
   describe "#weekly_trend" do
     it "returns up direction when this week has more backups" do
-      now = Time.now
-      backups = [
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 1.day).iso8601 },
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 2.days).iso8601 },
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 10.days).iso8601 },
-      ]
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
+      allow(database).to receive(:weekly_backup_counts).and_return({ "this_week" => 2, "last_week" => 1 })
       result = subject.weekly_trend
       expect(result[:direction]).to eq(:up)
       expect(result[:current]).to eq(2)
@@ -179,31 +168,19 @@ RSpec.describe Forge::Statistics do
     end
 
     it "returns down direction when last week had more backups" do
-      now = Time.now
-      backups = [
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 3.days).iso8601 },
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 10.days).iso8601 },
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 11.days).iso8601 },
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 12.days).iso8601 },
-      ]
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
+      allow(database).to receive(:weekly_backup_counts).and_return({ "this_week" => 1, "last_week" => 3 })
       result = subject.weekly_trend
       expect(result[:direction]).to eq(:down)
     end
 
     it "returns neutral when counts are equal" do
-      now = Time.now
-      backups = [
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 2.days).iso8601 },
-        { repo_name: "repo", size_bytes: 1000, created_at: (now - 10.days).iso8601 },
-      ]
-      allow(database).to receive(:backups).with(limit: 10_000).and_return(backups)
+      allow(database).to receive(:weekly_backup_counts).and_return({ "this_week" => 2, "last_week" => 2 })
       result = subject.weekly_trend
       expect(result[:direction]).to eq(:neutral)
     end
 
     it "returns neutral when no backups" do
-      allow(database).to receive(:backups).with(limit: 10_000).and_return([])
+      allow(database).to receive(:weekly_backup_counts).and_return({ "this_week" => 0, "last_week" => 0 })
       result = subject.weekly_trend
       expect(result[:direction]).to eq(:neutral)
       expect(result[:current]).to eq(0)

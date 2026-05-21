@@ -168,7 +168,7 @@ class BellowsController < ApplicationController
       { status: running ? "running" : (binary ? "stopped" : "not_installed"),
         model: "glm-5.1 (Z.AI)" }
     when "llama-swap"
-      config_exists = File.exist?(ENV["LLAMA_SWAP_CONFIG"] || File.expand_path("~/llama.cpp/llama-swap/config.yaml"))
+      config_exists = File.exist?(Forge::Config.llama_swap_config_path)
       running = system("pgrep", "-f", "llama", out: File::NULL, err: File::NULL)
       { status: running ? "running" : (config_exists ? "stopped" : "not_installed"),
         model: config_exists ? "Local models" : nil }

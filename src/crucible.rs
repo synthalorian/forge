@@ -802,7 +802,10 @@ fn inline_format(text: &str, theme: &crate::theme::Theme) -> String {
                             chars.next(); // consume second *
                             break;
                         }
-                        inner.push(chars.next().unwrap());
+                        match chars.next() {
+                            Some(c) => inner.push(c),
+                            None => break,
+                        }
                     }
                     let _ = write!(
                         out,
@@ -818,7 +821,10 @@ fn inline_format(text: &str, theme: &crate::theme::Theme) -> String {
                             chars.next();
                             break;
                         }
-                        inner.push(chars.next().unwrap());
+                        match chars.next() {
+                            Some(c) => inner.push(c),
+                            None => break,
+                        }
                     }
                     let _ = write!(
                         out,
@@ -835,7 +841,10 @@ fn inline_format(text: &str, theme: &crate::theme::Theme) -> String {
                         chars.next();
                         break;
                     }
-                    inner.push(chars.next().unwrap());
+                    match chars.next() {
+                        Some(c) => inner.push(c),
+                        None => break,
+                    }
                 }
                 let _ = write!(out, "{}", crate::theme::style_value(&inner, theme));
             }
@@ -847,7 +856,10 @@ fn inline_format(text: &str, theme: &crate::theme::Theme) -> String {
                         chars.next();
                         break;
                     }
-                    link_text.push(chars.next().unwrap());
+                    match chars.next() {
+                        Some(c) => link_text.push(c),
+                        None => break,
+                    }
                 }
                 let mut url = String::new();
                 if chars.peek() == Some(&'(') {
@@ -857,7 +869,10 @@ fn inline_format(text: &str, theme: &crate::theme::Theme) -> String {
                             chars.next();
                             break;
                         }
-                        url.push(chars.next().unwrap());
+                        match chars.next() {
+                            Some(c) => url.push(c),
+                            None => break,
+                        }
                     }
                 }
                 if url.is_empty() {
