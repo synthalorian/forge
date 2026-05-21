@@ -113,15 +113,9 @@ fn breathe_status(theme: &crate::theme::Theme) -> Result<()> {
 
     for agent in &agents {
         let status_indicator = match agent.status {
-            crate::mind::ServiceStatus::Running => {
-                crate::theme::style_success("●", theme)
-            }
-            crate::mind::ServiceStatus::Stopped => {
-                crate::theme::style_error("○", theme)
-            }
-            crate::mind::ServiceStatus::NotInstalled => {
-                crate::theme::style_muted("○", theme)
-            }
+            crate::mind::ServiceStatus::Running => crate::theme::style_success("●", theme),
+            crate::mind::ServiceStatus::Stopped => crate::theme::style_error("○", theme),
+            crate::mind::ServiceStatus::NotInstalled => crate::theme::style_muted("○", theme),
         };
 
         let status_text = match agent.status {
@@ -237,10 +231,7 @@ fn breathe_vault(theme: &crate::theme::Theme) -> Result<()> {
     );
     println!(
         "  {}",
-        crate::theme::style_border(
-            "────────────────────────────────",
-            theme
-        )
+        crate::theme::style_border("────────────────────────────────", theme)
     );
     println!(
         "  {} Coming in a future release.",
@@ -262,10 +253,7 @@ fn breathe_prompts(theme: &crate::theme::Theme) -> Result<()> {
     );
     println!(
         "  {}",
-        crate::theme::style_border(
-            "────────────────────────────────",
-            theme
-        )
+        crate::theme::style_border("────────────────────────────────", theme)
     );
     println!(
         "  {} Coming in a future release.",
@@ -329,10 +317,7 @@ fn run_pipe(cfg: &Config, path: &str) -> Result<()> {
         crate::theme::style_value(&total.to_string(), theme),
         crate::theme::style_muted("step(s)", theme)
     );
-    println!(
-        "  {}",
-        crate::theme::style_border(&"─".repeat(50), theme)
-    );
+    println!("  {}", crate::theme::style_border(&"─".repeat(50), theme));
 
     let mut outputs: std::collections::HashMap<String, String> = std::collections::HashMap::new();
 

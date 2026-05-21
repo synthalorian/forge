@@ -228,7 +228,11 @@ fn backup_repo(cfg: &Config, repo_path: &Path, compression: u32) -> Result<Backu
         branch_count,
         tag_count,
         commit_count,
-        backup_type: if is_incremental { BackupType::Incremental } else { BackupType::Full },
+        backup_type: if is_incremental {
+            BackupType::Incremental
+        } else {
+            BackupType::Full
+        },
         created_at: snapshot.captured_at,
     };
     let backup_id =

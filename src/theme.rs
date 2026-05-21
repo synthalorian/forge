@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ThemeColor {
@@ -71,16 +71,16 @@ pub struct Theme {
 /// Hierarchy: purple (primary) → cyan (secondary) → pink → yellow → red
 pub const SYNTHWAVE84: Theme = Theme {
     name: "synthwave84",
-    header: ThemeColor::new(143, 0, 255),       // #8f00ff — electric purple (primary)
-    accent: ThemeColor::new(168, 85, 247),      // #a855f7 — lavender purple (secondary)
-    success: ThemeColor::new(3, 237, 249),      // #03edf9 — neon cyan
-    error: ThemeColor::new(255, 0, 64),         // #ff0040 — red
-    warning: ThemeColor::new(243, 231, 15),     // #f3e70f — yellow
-    info: ThemeColor::new(255, 126, 219),       // #ff7edb — pink
-    muted: ThemeColor::new(97, 77, 133),        // #614d85 — muted purple
-    border: ThemeColor::new(143, 0, 255),       // #8f00ff — purple border
-    value: ThemeColor::new(255, 255, 255),      // #ffffff — white values
-    label: ThemeColor::new(143, 0, 255),        // #8f00ff — purple labels
+    header: ThemeColor::new(143, 0, 255), // #8f00ff — electric purple (primary)
+    accent: ThemeColor::new(168, 85, 247), // #a855f7 — lavender purple (secondary)
+    success: ThemeColor::new(3, 237, 249), // #03edf9 — neon cyan
+    error: ThemeColor::new(255, 0, 64),   // #ff0040 — red
+    warning: ThemeColor::new(243, 231, 15), // #f3e70f — yellow
+    info: ThemeColor::new(255, 126, 219), // #ff7edb — pink
+    muted: ThemeColor::new(97, 77, 133),  // #614d85 — muted purple
+    border: ThemeColor::new(143, 0, 255), // #8f00ff — purple border
+    value: ThemeColor::new(255, 255, 255), // #ffffff — white values
+    label: ThemeColor::new(143, 0, 255),  // #8f00ff — purple labels
     progress_bar: ThemeColor::new(168, 85, 247), // #a855f7 — lavender progress
 };
 
