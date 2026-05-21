@@ -17,12 +17,13 @@ pub enum Commands {
     Init,
     #[command(
         about = "Create a backup of one or more git repositories",
-        alias = "quench"
+        alias = "quench",
+        alias = "q"
     )]
     Backup(BackupArgs),
     #[command(about = "Restore a repository from a backup archive")]
     Restore(RestoreArgs),
-    #[command(about = "List available backups and archives")]
+    #[command(about = "List available backups and archives", alias = "l")]
     List(ListArgs),
     #[command(about = "Manage automated backup schedules")]
     Schedule(ScheduleArgs),
@@ -38,7 +39,7 @@ pub enum Commands {
     Rest,
     #[command(about = "AI agent status dashboard")]
     Breathe(BreatheArgs),
-    #[command(about = "Execute a task via best available AI agent")]
+    #[command(about = "Execute a task via best available AI agent", alias = "s")]
     Strike(StrikeArgs),
     #[command(about = "Verify backup integrity (re-hash & compare)")]
     Temper,
@@ -144,6 +145,13 @@ pub enum ThemeAction {
     },
     #[command(about = "Create a custom theme interactively")]
     Create,
+    #[command(about = "Export a theme to terminal config format (Alacritty/Kitty/Ghostty)")]
+    Export {
+        #[arg(help = "Theme name to export (default: active theme)")]
+        name: Option<String>,
+        #[arg(short, long, help = "Export format: alacritty, kitty, ghostty")]
+        format: Option<String>,
+    },
 }
 
 #[derive(Args)]
@@ -215,6 +223,11 @@ pub enum BreatheAction {
     Vault,
     #[command(about = "Manage prompt library")]
     Prompts,
+    #[command(about = "Run a multi-step agent pipeline from a TOML definition")]
+    Pipe {
+        #[arg(help = "Path to the pipeline TOML file")]
+        path: String,
+    },
 }
 
 #[derive(Args)]

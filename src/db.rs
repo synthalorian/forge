@@ -124,16 +124,22 @@ pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
             "{}",
             crate::theme::style_header(
                 &format!(
-                    "{:<5} {:<25} {:<10} {:<6} {:<12} Created",
-                    "ID", "Repo", "Branches", "Tags", "Size"
+                    "{:<5} {:<25} {:<10} {:<6} {:<8} {:<12} Created",
+                    "ID", "Repo", "Branches", "Tags", "Type", "Size"
                 ),
                 theme,
             )
         );
-        println!("{}", crate::theme::style_border(&"-".repeat(85), theme));
+        println!("{}", crate::theme::style_border(&"-".repeat(93), theme));
         for entry in &entries {
+            let type_str = match entry.backup_type {
+                crate::models::BackupType::Full => crate::theme::style_accent("full ", theme),
+                crate::models::BackupType::Incremental => {
+                    crate::theme::style_info("incr ", theme)
+                }
+            };
             println!(
-                "{} {} {} {} {} {}",
+                "{} {} {} {} {} {} {}",
                 crate::theme::style_value(&format!("{:<5}", entry.id), theme),
                 crate::theme::style_accent(
                     &format!("{:<25}", crate::utils::truncate_str(&entry.repo_name, 25)),
@@ -141,6 +147,7 @@ pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
                 ),
                 crate::theme::style_value(&format!("{:<10}", entry.branch_count), theme),
                 crate::theme::style_value(&format!("{:<6}", entry.tag_count), theme),
+                type_str,
                 crate::theme::style_value(
                     &format!("{:<12}", crate::utils::format_size(entry.size_bytes)),
                     theme
@@ -198,6 +205,27 @@ pub fn show_status(cfg: &Config) -> Result<()> {
         crate::theme::style_label("Disk usage:", theme),
         crate::theme::style_value(&crate::utils::format_size(total_size as u64), theme),
     );
+
+    let full_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM backups WHERE backup_type = 'full'",
+            [],
+            |row| row.get(0),
+        )
+        .context("Failed to count full backups")?;
+    let incr_count: i64 = total_backups - full_count;
+
+    if total_backups > 0 {
+        println!();
+        println!("{}", crate::theme::style_header("Backup types:", theme));
+        println!(
+            "  {} {} {} {}",
+            crate::theme::style_accent("full", theme),
+            crate::theme::style_value(&full_count.to_string(), theme),
+            crate::theme::style_info("incr", theme),
+            crate::theme::style_value(&incr_count.to_string(), theme),
+        );
+    }
 
     if unique_repos > 0 {
         println!();
