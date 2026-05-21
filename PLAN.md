@@ -79,11 +79,13 @@ The project is feature-complete. Remaining items are polish and release manageme
 - [x] `forge grip diagnose` — Extended system health with GPU detection, Omarchy checks, temperature, network, disk health, and fix suggestions
 - [x] `forge melt palette from-image` — Extract dominant color palette from an image file (`forge melt palette --file photo.png`)
 
+### v0.5.0 Milestone ✅
+
+- [x] `forge melt markdown` — Render markdown files to terminal with formatting, colors, and headers
+
 ### v1.0 Stretch Goals
 
 - [ ] `forge melt image` — Bridge to image generation (ComfyUI or Hermes)
-- [ ] `forge melt markdown` — Markdown preview/render in terminal
-- [ ] `forge grip diagnose` — Run `omarchy debug` equivalent for system health
 - [ ] Session persistence — Store agent conversation state in agents.db
 - [ ] `forge bridge sync` — Sync task state across platforms
 - [ ] Plugin/extension system (long-term stretch)

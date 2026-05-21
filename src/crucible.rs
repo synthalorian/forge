@@ -22,6 +22,7 @@ pub fn run_melt(cfg: &Config, args: &MeltArgs) -> Result<()> {
             diag_type,
             description,
         } => run_diagram(cfg, diag_type, description),
+        MeltAction::Markdown { path } => run_markdown(cfg, path),
     }
 }
 
@@ -567,6 +568,307 @@ fn capitalize(s: &str) -> String {
         None => String::new(),
         Some(f) => f.to_uppercase().to_string() + c.as_str(),
     }
+}
+
+// ── Markdown Renderer ──────────────────────────────────────────────
+
+fn run_markdown(cfg: &Config, path: &Option<String>) -> Result<()> {
+    let theme = crate::theme::load_from_config(cfg);
+
+    let content = match path {
+        Some(p) if p == "-" => {
+            let mut buf = String::new();
+            std::io::Read::read_to_string(&mut std::io::stdin(), &mut buf)?;
+            buf
+        }
+        Some(p) => std::fs::read_to_string(p)
+            .with_context(|| format!("Failed to read markdown file: {p}"))?,
+        None => {
+            let mut buf = String::new();
+            std::io::Read::read_to_string(&mut std::io::stdin(), &mut buf)?;
+            if buf.trim().is_empty() {
+                anyhow::bail!("No content. Provide a file path or pipe markdown to stdin.");
+            }
+            buf
+        }
+    };
+
+    // Detect a document title from the first H1
+    let title = content.lines().find(|l| l.starts_with("# "));
+    if let Some(t) = title {
+        let title_text = t.trim_start_matches("# ").trim();
+        println!(
+            "{}",
+            crate::theme::style_bold_header(&format!("📄 {}", title_text), theme)
+        );
+        println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
+    } else {
+        println!(
+            "{}",
+            crate::theme::style_bold_header("📄 Markdown Preview", theme)
+        );
+        println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
+    }
+
+    let mut in_code_block = false;
+    let mut in_blockquote = false;
+
+    for raw_line in content.lines() {
+        let line = raw_line.trim_end();
+
+        // Fenced code blocks
+        if line.starts_with("```") {
+            in_code_block = !in_code_block;
+            if in_code_block {
+                let lang = line.trim_start_matches("```").trim();
+                if !lang.is_empty() {
+                    println!(
+                        "  {} {}",
+                        crate::theme::style_label("┌─", theme),
+                        crate::theme::style_muted(lang, theme),
+                    );
+                } else {
+                    println!("  {}", crate::theme::style_label("┌─", theme));
+                }
+            } else {
+                println!("  {}", crate::theme::style_label("└─", theme));
+            }
+            continue;
+        }
+
+        if in_code_block {
+            println!(
+                "  {} {}",
+                crate::theme::style_label("│", theme),
+                crate::theme::style_value(line, theme),
+            );
+            continue;
+        }
+
+        // Blank line
+        if line.trim().is_empty() {
+            if in_blockquote {
+                in_blockquote = false;
+            }
+            println!();
+            continue;
+        }
+
+        // Thematic break
+        if line == "---" || line == "***" || line == "___" {
+            println!("  {}", crate::theme::style_border(&"─".repeat(48), theme));
+            continue;
+        }
+
+        // Blockquote
+        if line.starts_with("> ") || line.starts_with('>') {
+            let quote_text = line.trim_start_matches('>').trim();
+            if !in_blockquote {
+                in_blockquote = true;
+            }
+            println!(
+                "  {} {}",
+                crate::theme::style_label("▍", theme),
+                crate::theme::style_muted(quote_text, theme),
+            );
+            continue;
+        }
+
+        in_blockquote = false;
+
+        // Headers
+        if let Some(rest) = line.strip_prefix("###### ") {
+            println!("  {}", crate::theme::style_muted(rest.trim(), theme));
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("##### ") {
+            println!("  {}", crate::theme::style_muted(rest.trim(), theme));
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("#### ") {
+            println!("  {}", crate::theme::style_muted(rest.trim(), theme));
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("### ") {
+            println!(
+                "  {}",
+                crate::theme::style_accent(&inline_format(rest.trim(), theme), theme)
+            );
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("## ") {
+            println!(
+                "  {}",
+                crate::theme::style_header(&inline_format(rest.trim(), theme), theme)
+            );
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("# ") {
+            // H1 already used for title, render muted
+            println!(
+                "  {}",
+                crate::theme::style_muted(&inline_format(rest.trim(), theme), theme)
+            );
+            continue;
+        }
+
+        // Unordered list
+        let list_match = line.trim_start().starts_with("- ")
+            || line.trim_start().starts_with("* ")
+            || line.trim_start().starts_with("+ ");
+        if list_match {
+            let content = line
+                .trim_start()
+                .trim_start_matches(&['-', '*', '+'][..])
+                .trim();
+            println!(
+                "  {} {}",
+                crate::theme::style_accent("•", theme),
+                crate::theme::style_value(&inline_format(content, theme), theme),
+            );
+            continue;
+        }
+
+        // Ordered list
+        if let Some(idx_str) = line.trim_start().split('.').next() {
+            if let Ok(idx) = idx_str.parse::<u32>() {
+                let after_dot = line
+                    .trim_start()
+                    .trim_start_matches(&format!("{}.", idx))
+                    .trim();
+                println!(
+                    "  {} {}",
+                    crate::theme::style_accent(&format!("{}.", idx), theme),
+                    crate::theme::style_value(&inline_format(after_dot, theme), theme),
+                );
+                continue;
+            }
+        }
+
+        // Paragraph — render with basic inline formatting
+        println!(
+            "  {}",
+            crate::theme::style_value(&inline_format(line, theme), theme)
+        );
+    }
+
+    println!();
+    println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
+    if let Some(p) = path {
+        if p != "-" {
+            println!(
+                "  {} {}",
+                crate::theme::style_muted("Source:", theme),
+                crate::theme::style_value(p, theme),
+            );
+        }
+    }
+    println!();
+
+    Ok(())
+}
+
+/// Apply basic inline markdown formatting (**bold**, *italic*, `code`, [links](url))
+fn inline_format(text: &str, theme: &crate::theme::Theme) -> String {
+    use std::fmt::Write;
+
+    let mut out = String::new();
+    let mut chars = text.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\\' => {
+                // Escape — next char is literal
+                if let Some(next) = chars.next() {
+                    out.push(next);
+                }
+            }
+            '*' => {
+                // Could be **bold** or *italic*
+                if chars.peek() == Some(&'*') {
+                    // Bold: **text**
+                    chars.next(); // consume second *
+                    let mut inner = String::new();
+                    while let Some(&c) = chars.peek() {
+                        if c == '*' && chars.clone().nth(1) == Some('*') {
+                            chars.next(); // consume first *
+                            chars.next(); // consume second *
+                            break;
+                        }
+                        inner.push(chars.next().unwrap());
+                    }
+                    let _ = write!(
+                        out,
+                        "\x1b[1m{}\x1b[0m{}",
+                        crate::theme::style_accent(&inner, theme),
+                        crate::theme::style_value("", theme)
+                    );
+                } else {
+                    // Italic: *text*
+                    let mut inner = String::new();
+                    while let Some(&c) = chars.peek() {
+                        if c == '*' {
+                            chars.next();
+                            break;
+                        }
+                        inner.push(chars.next().unwrap());
+                    }
+                    let _ = write!(
+                        out,
+                        "\x1b[3m{}\x1b[23m",
+                        crate::theme::style_muted(&inner, theme)
+                    );
+                }
+            }
+            '`' => {
+                // Inline code
+                let mut inner = String::new();
+                while let Some(&c) = chars.peek() {
+                    if c == '`' {
+                        chars.next();
+                        break;
+                    }
+                    inner.push(chars.next().unwrap());
+                }
+                let _ = write!(out, "{}", crate::theme::style_value(&inner, theme));
+            }
+            '[' => {
+                // Link: [text](url)
+                let mut link_text = String::new();
+                while let Some(&c) = chars.peek() {
+                    if c == ']' {
+                        chars.next();
+                        break;
+                    }
+                    link_text.push(chars.next().unwrap());
+                }
+                let mut url = String::new();
+                if chars.peek() == Some(&'(') {
+                    chars.next(); // consume (
+                    while let Some(&c) = chars.peek() {
+                        if c == ')' {
+                            chars.next();
+                            break;
+                        }
+                        url.push(chars.next().unwrap());
+                    }
+                }
+                if url.is_empty() {
+                    let _ = write!(out, "[{}]", link_text);
+                } else {
+                    let _ = write!(
+                        out,
+                        "{} {}",
+                        crate::theme::style_accent(&link_text, theme),
+                        crate::theme::style_muted(&format!("({})", url), theme)
+                    );
+                }
+            }
+            _ => out.push(ch),
+        }
+    }
+
+    out
 }
 
 // ── Palette from Image ─────────────────────────────────────────────

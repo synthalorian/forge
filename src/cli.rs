@@ -340,6 +340,11 @@ pub enum MeltAction {
         #[arg(short, long, help = "Diagram description")]
         description: Option<String>,
     },
+    #[command(about = "Render markdown to terminal with formatting")]
+    Markdown {
+        #[arg(help = "Path to markdown file (use '-' for stdin)")]
+        path: Option<String>,
+    },
 }
 
 #[derive(Args)]
