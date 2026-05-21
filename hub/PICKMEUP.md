@@ -1,8 +1,8 @@
 # Forge + Forge Hub — Session Pickup
 
-## Test Status (LAST VERIFIED: This Session)
-- **Forge CLI (Rust):** 69 unit tests + 9 integration tests — **ALL GREEN** ✅
-- **Forge Hub (Rails):** 85 examples, 0 failures — **ALL GREEN** ✅
+## Test Status (LAST VERIFIED: v1.0.0 Session)
+- **Forge CLI (Rust):** 199 tests (91 unit + 91 lib + 9 integration + 8 spirit) — **ALL GREEN** ✅
+- **Forge Hub (Rails):** 224 examples, 0 failures — **ALL GREEN** ✅
 
 ---
 

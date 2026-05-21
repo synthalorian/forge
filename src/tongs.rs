@@ -472,7 +472,11 @@ pub fn run_diagnose(cfg: &Config) -> Result<()> {
     println!("  {}", crate::theme::style_header("Essential Tools", theme));
 
     for tool in &["git", "zstd", "tar", "curl", "jq"] {
-        let found = safe_command(&format!("which {} 2>/dev/null", tool));
+        let found = std::process::Command::new("which")
+            .arg(tool)
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+            .unwrap_or_default();
         if found.trim().is_empty() {
             println!(
                 "    {} {} {}",
@@ -511,10 +515,14 @@ pub fn run_diagnose(cfg: &Config) -> Result<()> {
     }
 
     if cfg.archive_dir.exists() {
-        let archive_size = safe_command(&format!(
-            "du -sh {} 2>/dev/null | cut -f1",
-            cfg.archive_dir.display()
-        ));
+        let archive_size = std::process::Command::new("du")
+            .args(["-sh", &cfg.archive_dir.to_string_lossy()])
+            .output()
+            .map(|o| {
+                let out = String::from_utf8_lossy(&o.stdout);
+                out.split_whitespace().next().unwrap_or("").to_string()
+            })
+            .unwrap_or_default();
         println!(
             "    {} {} — {}",
             crate::theme::style_success("●", theme),

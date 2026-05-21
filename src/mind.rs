@@ -4,7 +4,6 @@
 //! routes tasks to the best available agent, and executes them.
 
 use anyhow::{Context, Result};
-use std::path::Path;
 use std::process::Command;
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -69,7 +68,13 @@ pub struct RoutingResult {
 
 // ── Agent Detection ────────────────────────────────────────────────
 
-const LLAMA_SWAP_CONFIG: &str = "/home/synth/llama.cpp/llama-swap/config.yaml";
+/// Resolve llama-swap config path from env or default.
+fn llama_swap_config_path() -> std::path::PathBuf {
+    std::path::PathBuf::from(
+        std::env::var("LLAMA_SWAP_CONFIG")
+            .unwrap_or_else(|_| "/home/synth/llama.cpp/llama-swap/config.yaml".to_string())
+    )
+}
 const HERMES_AUTH_PATH: &str = ".hermes/auth.json";
 
 /// Detect all known AI agents and their status.
@@ -116,7 +121,8 @@ fn detect_opencode() -> AgentStatus {
 }
 
 fn detect_llama_swap() -> AgentStatus {
-    let config_exists = Path::new(LLAMA_SWAP_CONFIG).exists();
+    let config_path = llama_swap_config_path();
+    let config_exists = config_path.exists();
 
     if !config_exists {
         return AgentStatus {
@@ -223,7 +229,7 @@ fn detect_codex() -> AgentStatus {
 /// Parse llama-swap config.yaml for available models.
 /// Uses simple string parsing — no YAML dependency needed.
 pub fn detect_models() -> Vec<ModelInfo> {
-    let config_path = Path::new(LLAMA_SWAP_CONFIG);
+    let config_path = llama_swap_config_path();
     if !config_path.exists() {
         return Vec::new();
     }
@@ -266,7 +272,7 @@ pub fn detect_models() -> Vec<ModelInfo> {
             if !trimmed.starts_with('-') && trimmed.starts_with("name:") {
                 let name = trimmed
                     .strip_prefix("name:")
-                    .unwrap()
+                    .unwrap_or("")
                     .trim()
                     .trim_matches('"')
                     .trim_matches('\'');

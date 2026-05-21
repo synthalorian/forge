@@ -22,14 +22,35 @@ class Anvil::BackupsController < ApplicationController
   end
 
   def trigger
-    if Rails.cache.read("forge_backup_running")
+    # Atomic check-and-set to prevent duplicate backup triggers
+    cache_key = "forge_backup_running"
+    if Rails.cache.read(cache_key)
       redirect_to anvil_backups_path, alert: "A backup is already in progress."
       return
     end
 
-    job = BackupJob.perform_later(path: params[:path])
-    session[:active_backup_job_id] = job&.job_id
-    redirect_to anvil_backups_path, notice: "Backup started."
+    # Write a sentinel value before enqueuing to close the race window
+    Rails.cache.write(cache_key, true, expires_in: 5.minutes)
+
+    path = params[:path].to_s.strip
+    if path.present?
+      # Validate path is not traversing outside allowed dirs
+      expanded = File.expand_path(path)
+      unless expanded.start_with?(File.expand_path("~"))
+        Rails.cache.delete(cache_key)
+        redirect_to anvil_backups_path, alert: "Invalid path."
+        return
+      end
+    end
+
+    begin
+      job = BackupJob.perform_later(path: path.presence)
+      session[:active_backup_job_id] = job&.job_id
+      redirect_to anvil_backups_path, notice: "Backup started."
+    rescue StandardError => e
+      Rails.cache.delete(cache_key)
+      redirect_to anvil_backups_path, alert: "Failed to start backup: #{e.message}"
+    end
   end
 
   def browse

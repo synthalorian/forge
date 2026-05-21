@@ -44,11 +44,11 @@ The terminal workshop. Everything starts here.
 | Pillar | Command | Purpose | Status |
 |--------|---------|---------|--------|
 | **Anvil** | `forge anvil` | Backup & restore management | ✅ Done |
-| **Bellows** | `forge breathe` | AI agent orchestration | 🚧 Planned |
-| **Flame** | `forge word` | Scripture & study | 🚧 In Progress |
-| **Tongs** | `forge grip` | System management | 📋 Planned |
-| **Crucible** | `forge melt` | Creative tools | 📋 Planned |
-| **Bridge** | `forge bridge` | Connections & integrations | 📋 Planned |
+| **Bellows** | `forge breathe` | AI agent orchestration | ✅ Done |
+| **Flame** | `forge word` | Scripture & study | ✅ Done |
+| **Tongs** | `forge grip` | System management | ✅ Done |
+| **Crucible** | `forge melt` | Creative tools | ✅ Done |
+| **Bridge** | `forge bridge` | Connections & integrations | ✅ Done |
 
 ### Install from Source
 
@@ -171,13 +171,17 @@ The visual command center. A Rails 8 web GUI that sits on top of Forge CLI, givi
 
 ### Features
 
-- **Dashboard** — At-a-glance stats: backup count, repo count, storage used, active schedules
-- **Backup Browser** — Browse all backups, see sizes, commit counts, timestamps
-- **Pillar Navigation** — Visual access to all six pillars (Anvil, Bellows, Flame, Tongs, Crucible, Bridge)
-- **Synthwave84 Theme** — Deep purple palette with neon accents, CRT scanlines, horizon glow
-- **Theme Switcher** — Toggle between Synthwave84 Midnight, Ocean, and Light variants
-- **Glass Morphism UI** — Backdrop blur, translucent panels, hover glow effects
-- **Responsive** — Works on desktop and tablet
+- **Dashboard** — At-a-glance stats: backup count, repo count, storage used, active schedules, weekly trends
+- **Backup Browser** — Browse all backups with search, pagination, restore, and chart data
+- **Schedule Manager** — Create, toggle, and delete backup schedules with cron expressions
+- **Flame** — Scripture search (debounced live search), reference lookup, encrypted journal browser with pagination
+- **Bellows** — Agent detection, session management, chat-style message history, quick strike, pipeline runner
+- **Tongs** — System dashboard with GPU/temperatures/resource bars, diagnostics, dotfiles tracker, services list
+- **Crucible** — Creative tools bridge (chords, palettes, diagrams, markdown, image generation)
+- **Bridge** — Integration status for 11+ tools, lifecycle hooks, sync dashboard, notification testing, Omarchy detection
+- **Synthwave84 Theme** — Deep purple palette with neon accents, CRT scanlines, horizon glow, glass morphism
+- **Theme Switcher** — Toggle between Synthwave84, Midnight, Ocean, and Light variants
+- **Global Search** — Search across all pillars from a unified search bar
 
 ### Install & Run
 
@@ -311,31 +315,37 @@ forge init
 | Cron scheduler | ✅ Done |
 | Forge Hub — Rails 8 web GUI | ✅ Done |
 
-### Phase 2 — Expansion
+### Phase 2 — Expansion ✅
 
 | Module | Status |
 |--------|--------|
-| Scripture search & reference | 🚧 In Progress |
-| Encrypted prayer journal | 🚧 In Progress |
-| Sabbath mode | 🚧 In Progress |
-| AI agent harness (`forge breathe`) | 📋 Planned |
-| Multi-agent orchestration (`forge strike`) | 📋 Planned |
-| Credential vault | 📋 Planned |
-| Prompt library | 📋 Planned |
-| System diagnostics | 📋 Planned |
-| Hub — real-time backup progress | 📋 Planned |
-| Hub — agent status dashboard | 📋 Planned |
+| Scripture search & reference | ✅ Done |
+| Encrypted prayer journal | ✅ Done |
+| Sabbath mode | ✅ Done |
+| AI agent harness (`forge breathe`) | ✅ Done |
+| Multi-agent orchestration (`forge strike`) | ✅ Done |
+| Credential vault | ✅ Done |
+| Prompt library | ✅ Done |
+| System diagnostics | ✅ Done |
+| Hub — real-time backup progress | ✅ Done |
+| Hub — agent status dashboard | ✅ Done |
 
-### Phase 3 — Vision
+### Phase 3 — Creative & Integration ✅
 
 | Module | Status |
 |--------|--------|
-| Creative tools (music, image, diagrams) | 📋 Planned |
-| Notification hub | 📋 Planned |
-| Webhook management | 📋 Planned |
-| API gateway | 📋 Planned |
-| Calendar integration | 📋 Planned |
-| Cross-platform sync | 📋 Planned |
+| Creative tools (music, image, diagrams) | ✅ Done |
+| Notification hub | ✅ Done |
+| Webhook management | ✅ Done |
+| Session persistence | ✅ Done |
+| Markdown renderer | ✅ Done |
+| Procedural image generation | ✅ Done |
+| Bridge sync | ✅ Done |
+| Hub — full pillar pages (all 6) | ✅ Done |
+| Hub — journal browser with pagination | ✅ Done |
+| Hub — session detail with message history | ✅ Done |
+| Hub — dotfiles management | ✅ Done |
+| Hub — global search | 🚧 In Progress |
 
 ---
 

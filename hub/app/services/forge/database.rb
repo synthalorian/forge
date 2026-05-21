@@ -63,8 +63,48 @@ module Forge
     end
 
     def schedule_count
+      with_retry { |db| db.get_first_value("SELECT COUNT(*) FROM schedules") || 0 }
+    end
+
+    # Aggregate queries for Statistics — avoids loading 10K rows into Ruby
+    def top_repos_by_count(limit: 5)
       with_retry do |db|
-        db.get_first_value("SELECT COUNT(*) FROM schedules") || 0
+        db.execute(
+          "SELECT repo_name, COUNT(*) as cnt, SUM(size_bytes) as total_size
+           FROM backups GROUP BY repo_name ORDER BY cnt DESC LIMIT ?",
+          [limit]
+        ).map { |r| { name: r["repo_name"], count: r["cnt"], total_size: r["total_size"] } }
+      end
+    end
+
+    def backup_frequency_weeks(limit: 12)
+      with_retry do |db|
+        db.execute(
+          "SELECT strftime('%G-%V', created_at) as week, COUNT(*) as cnt
+           FROM backups GROUP BY week ORDER BY week DESC LIMIT ?",
+          [limit]
+        ).reverse.map { |r| { week: r["week"], count: r["cnt"] } }
+      end
+    end
+
+    def disk_usage_trend(limit: 12)
+      with_retry do |db|
+        db.execute(
+          "SELECT created_at, SUM(size_bytes) OVER (ORDER BY created_at) as cumulative_size
+           FROM backups ORDER BY created_at DESC LIMIT ?",
+          [limit]
+        ).reverse.map { |r| { date: r["created_at"], cumulative_size: r["cumulative_size"] } }
+      end
+    end
+
+    def weekly_backup_counts
+      with_retry do |db|
+        db.execute(
+          "SELECT COUNT(*) FILTER (WHERE created_at >= datetime('now', '-7 days')) as this_week,
+                  COUNT(*) FILTER (WHERE created_at >= datetime('now', '-14 days')
+                              AND created_at < datetime('now', '-7 days')) as last_week
+           FROM backups"
+        ).first
       end
     end
 
@@ -84,7 +124,12 @@ module Forge
       RETRY_ATTEMPTS.times do |attempt|
         begin
           db = create_connection
-          return block.call(db)
+          begin
+            result = block.call(db)
+            return result
+          ensure
+            db.close
+          end
         rescue SQLite3::BusyException => e
           last_error = e
           sleep RETRY_DELAYS[attempt] if attempt < RETRY_ATTEMPTS - 1

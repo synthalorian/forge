@@ -45,14 +45,34 @@
 
     <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
       <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Resource Usage</h3>
-      <div class="space-y-3">
-        <% resource_items = [
-          ["Memory", @system_info[:memory]],
-          ["Disk (/)", @system_info[:disk]],
-          ["Load", @system_info[:load_avg]],
-          ["Processes", @system_info[:processes]]
-        ] %>
-        <% resource_items.each do |label, value| %>
+      <div class="space-y-4">
+        <% mem_pct = @system_info[:memory_percent].to_f %>
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs text-text-muted">Memory</span>
+            <span class="text-xs font-mono text-text-primary"><%= @system_info[:memory].presence || "N/A" %></span>
+          </div>
+          <div class="h-2 rounded-full bg-bg-surface/50 border border-border-faint overflow-hidden">
+            <div class="h-full rounded-full <%= mem_pct > 80 ? 'bg-neon-pink' : mem_pct > 60 ? 'bg-neon-yellow' : 'bg-neon-cyan' %>"
+                 style="width: <%= [mem_pct, 100].min %>%"></div>
+          </div>
+          <span class="text-[10px] font-mono text-text-dim mt-0.5 block"><%= mem_pct %>%</span>
+        </div>
+
+        <% disk_pct = @system_info[:disk_percent].to_f %>
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs text-text-muted">Disk (/)</span>
+            <span class="text-xs font-mono text-text-primary"><%= @system_info[:disk].presence || "N/A" %></span>
+          </div>
+          <div class="h-2 rounded-full bg-bg-surface/50 border border-border-faint overflow-hidden">
+            <div class="h-full rounded-full <%= disk_pct > 80 ? 'bg-neon-pink' : disk_pct > 60 ? 'bg-neon-yellow' : 'bg-neon-cyan' %>"
+                 style="width: <%= [disk_pct, 100].min %>%"></div>
+          </div>
+          <span class="text-[10px] font-mono text-text-dim mt-0.5 block"><%= disk_pct %>%</span>
+        </div>
+
+        <% [["Load", @system_info[:load_avg]], ["Processes", @system_info[:processes]]].each do |label, value| %>
           <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-bg-surface/30 border border-border-faint">
             <span class="text-xs text-text-muted"><%= label %></span>
             <span class="text-xs font-mono text-text-primary"><%= value.presence || "N/A" %></span>
@@ -62,24 +82,90 @@
     </div>
   </div>
 
-  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
-    <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Coming to Forge CLI</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      <% commands = [
-        { cmd: "forge grip", desc: "System resource dashboard" },
-        { cmd: "forge grip dotfiles", desc: "Track and version dotfiles" },
-        { cmd: "forge grip dotfiles restore", desc: "Restore from history" },
-        { cmd: "forge grip services", desc: "List running dev services" },
-        { cmd: "forge grip diagnose", desc: "System health check" },
-        { cmd: "forge theme create", desc: "Interactive theme builder" }
-      ] %>
-      <% commands.each do |cmd| %>
-        <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
-          <code class="text-xs text-neon-cyan font-mono"><%= cmd[:cmd] %></code>
-          <p class="text-xs text-text-muted mt-1"><%= cmd[:desc] %></p>
-        </div>
-      <% end %>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+      <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">GPU</h3>
+      <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint">
+        <% gpu = @system_info[:gpu_info].presence || "N/A" %>
+        <% gpu.split("\n").each do |line| %>
+          <p class="text-xs font-mono text-neon-yellow"><%= line.strip %></p>
+        <% end %>
+      </div>
     </div>
-    <p class="text-xs text-text-dim mt-4 font-mono uppercase tracking-widest">Coming in forge v0.2+</p>
+
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+      <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Temperatures</h3>
+      <div class="bg-bg-surface/30 rounded-lg p-3 border border-border-faint max-h-48 overflow-y-auto">
+        <% temps = @system_info[:temperatures].presence || "N/A" %>
+        <% temps.split("\n").each do |line| %>
+          <p class="text-xs font-mono text-text-primary"><%= line.strip %></p>
+        <% end %>
+      </div>
+    </div>
   </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+    <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Forge CLI Tools</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="bg-bg-surface/30 rounded-lg p-4 border border-border-faint flex flex-col gap-3">
+        <div>
+          <code class="text-xs text-neon-cyan font-mono">forge grip diagnose</code>
+          <p class="text-xs text-text-muted mt-1">System health check</p>
+        </div>
+        <%= button_to "Run Diagnose", "/tongs/diagnose", method: :get, form: { data: { turbo_stream: true } },
+            class: "text-xs font-mono px-3 py-1.5 rounded-lg bg-neon-yellow/10 border border-neon-yellow/30 text-neon-yellow
+                   hover:bg-neon-yellow/20 transition-colors cursor-pointer" %>
+      </div>
+
+      <div class="bg-bg-surface/30 rounded-lg p-4 border border-border-faint flex flex-col gap-3">
+        <div>
+          <code class="text-xs text-neon-cyan font-mono">forge grip dotfiles</code>
+          <p class="text-xs text-text-muted mt-1">Track and version dotfiles</p>
+        </div>
+        <%= button_to "List Dotfiles", "/tongs/dotfiles", method: :get, form: { data: { turbo_stream: true } },
+            class: "text-xs font-mono px-3 py-1.5 rounded-lg bg-neon-yellow/10 border border-neon-yellow/30 text-neon-yellow
+                   hover:bg-neon-yellow/20 transition-colors cursor-pointer" %>
+      </div>
+
+      <div class="bg-bg-surface/30 rounded-lg p-4 border border-border-faint flex flex-col gap-3">
+        <div>
+          <code class="text-xs text-neon-cyan font-mono">forge grip services</code>
+          <p class="text-xs text-text-muted mt-1">List running dev services</p>
+        </div>
+        <%= button_to "List Services", "/tongs/services", method: :get, form: { data: { turbo_stream: true } },
+            class: "text-xs font-mono px-3 py-1.5 rounded-lg bg-neon-yellow/10 border border-neon-yellow/30 text-neon-yellow
+                   hover:bg-neon-yellow/20 transition-colors cursor-pointer" %>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+    <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Track Dotfile</h3>
+    <div class="flex gap-3 items-end">
+      <div class="flex-1">
+        <label class="text-xs text-text-muted block mb-1.5 font-mono">Path</label>
+        <input type="text" name="path" id="dotfile-path"
+               placeholder="~/.config/hypr/hyprland.conf"
+               class="w-full text-xs font-mono px-3 py-2 rounded-lg bg-bg-surface/30 border border-border-faint
+                      text-text-primary placeholder:text-text-dim focus:border-neon-yellow/50 focus:outline-none">
+      </div>
+      <%= button_to "Track", "/tongs/dotfiles/track", method: :post,
+          params: { path: "" },
+          form: { id: "track-dotfile-form", data: { turbo_stream: true } },
+          class: "text-xs font-mono px-4 py-2 rounded-lg bg-neon-yellow/10 border border-neon-yellow/30 text-neon-yellow
+                 hover:bg-neon-yellow/20 transition-colors cursor-pointer whitespace-nowrap" %>
+    </div>
+  </div>
+
+  <div id="tongs-output"></div>
 </div>
+
+<script>
+  document.getElementById("track-dotfile-form").addEventListener("submit", function(e) {
+    const pathInput = document.getElementById("dotfile-path");
+    const hiddenInput = this.querySelector("input[name='path']");
+    if (hiddenInput && pathInput) {
+      hiddenInput.value = pathInput.value;
+    }
+  });
+</script>

@@ -34,7 +34,7 @@ fn run_status(cfg: &Config) -> Result<()> {
         ("OpenCode", which_exists("opencode")),
         (
             "llama-swap",
-            std::path::Path::new("/home/synth/llama.cpp/llama-swap/config.yaml").exists(),
+            std::path::Path::new(&std::env::var("LLAMA_SWAP_CONFIG").unwrap_or_else(|_| "/home/synth/llama.cpp/llama-swap/config.yaml".to_string())).exists(),
         ),
         ("Hermes", which_exists("hermes")),
         ("Codex CLI", which_exists("codex")),
@@ -296,9 +296,11 @@ pub fn run_sync(cfg: &Config, verbose: bool) -> Result<()> {
                     crate::theme::style_value(&crate::utils::format_size(size as u64), theme)
                 );
                 if let Ok(mut stmt) = conn.prepare("SELECT repo_name, created_at, size_bytes FROM backups ORDER BY created_at DESC LIMIT 5") {
-                    let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)?))).unwrap();
-                    for row in rows.flatten().take(5) {
-                        println!("  {} {} — {} ({})", crate::theme::style_accent("▸", theme), crate::theme::style_value(&row.0, theme), crate::theme::style_muted(&crate::utils::format_size(row.2 as u64), theme), crate::theme::style_muted(&row.1[..10], theme));
+                    if let Ok(rows) = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)?))) {
+                        for row in rows.flatten().take(5) {
+                            let date_preview: String = row.1.chars().take(10).collect();
+                            println!("  {} {} — {} ({})", crate::theme::style_accent("▸", theme), crate::theme::style_value(&row.0, theme), crate::theme::style_muted(&crate::utils::format_size(row.2 as u64), theme), crate::theme::style_muted(&date_preview, theme));
+                        }
                     }
                 }
             }
@@ -326,11 +328,12 @@ pub fn run_sync(cfg: &Config, verbose: bool) -> Result<()> {
                     crate::theme::style_muted("total", theme)
                 );
                 if let Ok((agent, updated)) = latest {
+                    let date_preview: String = updated.chars().take(10).collect();
                     println!(
                         "  {} {} — last active {}",
                         crate::theme::style_accent("▸", theme),
                         crate::theme::style_value(&agent, theme),
-                        crate::theme::style_muted(&updated[..10], theme)
+                        crate::theme::style_muted(&date_preview, theme)
                     );
                 }
             }
@@ -388,13 +391,14 @@ pub fn run_sync(cfg: &Config, verbose: bool) -> Result<()> {
             crate::theme::style_value(parts[3], theme)
         );
     }
-    let forge_size = crate::tongs::safe_command(&format!(
-        "du -sh {} 2>/dev/null | cut -f1",
-        cfg.archive_dir
-            .parent()
-            .unwrap_or(&cfg.archive_dir)
-            .display()
-    ));
+    let forge_size = std::process::Command::new("du")
+        .args(["-sh", &cfg.archive_dir.parent().unwrap_or(&cfg.archive_dir).to_string_lossy()])
+        .output()
+        .map(|o| {
+            let out = String::from_utf8_lossy(&o.stdout);
+            out.split_whitespace().next().unwrap_or("").to_string()
+        })
+        .unwrap_or_default();
     if !forge_size.trim().is_empty() {
         println!(
             "  {} {}",

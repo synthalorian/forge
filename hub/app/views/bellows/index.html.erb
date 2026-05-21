@@ -96,4 +96,63 @@
     </div>
     <p class="text-xs text-text-muted mt-3">Forge routes tasks to the highest-priority running agent. Local agents preferred over remote.</p>
   </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+      <h3 class="text-sm font-semibold text-neon-purple mb-4 uppercase tracking-wider font-mono">Quick Strike</h3>
+      <%= form_with url: "/bellows/strike", method: :post, data: { turbo_frame: "bellows-output" }, local: true do |f| %>
+        <div class="space-y-3">
+          <%= f.text_field :task, placeholder: "Describe a task...",
+              class: "w-full rounded-lg bg-bg-dark/80 border border-border-faint px-3 py-2
+                     text-sm font-mono text-text-primary placeholder-text-dim
+                     focus:border-neon-purple focus:outline-none focus:ring-1 focus:ring-neon-purple/50" %>
+          <%= f.submit "Strike",
+              class: "w-full rounded-lg bg-neon-purple/20 border border-neon-purple/30 px-4 py-2
+                     text-sm font-mono text-neon-purple hover:bg-neon-purple/30 transition-colors cursor-pointer" %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+      <h3 class="text-sm font-semibold text-neon-purple mb-4 uppercase tracking-wider font-mono">Pipeline Runner</h3>
+      <%= form_with url: "/bellows/pipeline", method: :post, data: { turbo_frame: "bellows-output" }, local: true do |f| %>
+        <div class="space-y-3">
+          <%= f.text_area :toml, rows: 4, placeholder: "# TOML pipeline definition...",
+              class: "w-full rounded-lg bg-bg-dark/80 border border-border-faint px-3 py-2
+                     text-sm font-mono text-text-primary placeholder-text-dim
+                     focus:border-neon-purple focus:outline-none focus:ring-1 focus:ring-neon-purple/50 resize-none" %>
+          <%= f.submit "Run Pipeline",
+              class: "w-full rounded-lg bg-neon-purple/20 border border-neon-purple/30 px-4 py-2
+                     text-sm font-mono text-neon-purple hover:bg-neon-purple/30 transition-colors cursor-pointer" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-neon-purple uppercase tracking-wider font-mono">Sessions</h3>
+      <div class="flex gap-2">
+        <%= button_to "Load Sessions", "/bellows/sessions", method: :get,
+            form: { data: { turbo_frame: "bellows-output" } },
+            class: "rounded-lg bg-bg-surface/50 border border-border-faint px-3 py-1.5
+                   text-xs font-mono text-text-muted hover:text-neon-purple hover:border-neon-purple/30 transition-colors cursor-pointer" %>
+      </div>
+    </div>
+    <p class="text-xs text-text-muted mb-4">Recent agent sessions from <code class="text-neon-purple">forge breathe sessions</code>. Click Load Sessions to fetch.</p>
+  </div>
+
+  <turbo-frame id="bellows-output">
+    <div id="bellows-output" class="space-y-4">
+      <div class="rounded-xl bg-bg-panel border border-border-faint p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-neon-purple text-xs font-mono">▸</span>
+          <h4 class="text-sm font-semibold text-text-primary font-mono">Output</h4>
+        </div>
+        <div class="text-center py-8 text-text-dim">
+          <p class="text-sm font-mono">Run a strike, pipeline, or session query to see output</p>
+        </div>
+      </div>
+    </div>
+  </turbo-frame>
 </div>

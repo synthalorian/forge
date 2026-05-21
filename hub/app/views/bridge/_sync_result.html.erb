@@ -1,0 +1,14 @@
+<% status_color = case status
+   when :success then "text-neon-green"
+   when :error then "text-neon-red"
+   else "text-neon-yellow"
+   end %>
+<div class="py-3 px-4 rounded-lg bg-bg-surface/30 border border-border-faint">
+  <div class="flex items-center gap-2 mb-2">
+    <span class="<%= status_color %> text-xs">●</span>
+    <span class="text-xs text-text-muted font-mono">Sync <%= status == :success ? "complete" : (status == :unavailable ? "unavailable" : "failed") %></span>
+  </div>
+  <% if output.present? %>
+    <pre class="text-xs font-mono <%= status_color %> leading-relaxed whitespace-pre-wrap"><%= output %></pre>
+  <% end %>
+</div>

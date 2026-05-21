@@ -1,0 +1,8 @@
+<% status_color = status == :success ? "text-neon-green" : "text-neon-red" %>
+<% bg_color = status == :success ? "bg-neon-green/5 border-neon-green/20" : "bg-neon-red/5 border-neon-red/20" %>
+<div class="py-2 px-4 rounded-lg <%= bg_color %> border">
+  <div class="flex items-center gap-2">
+    <span class="<%= status_color %> text-xs font-mono"><%= status == :success ? "✓" : "✗" %></span>
+    <span class="<%= status_color %> text-xs font-mono"><%= result %></span>
+  </div>
+</div>

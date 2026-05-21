@@ -10,12 +10,11 @@
 **Repository:** `synthalorian/forge` (public, monorepo)
 **Language:** Rust (edition 2021) + Ruby on Rails 8.1 (Hub)
 **CLI Binary:** `forge` — 23 commands across 6 pillars + workshop verbs
-**Hub:** Rails 8.1 web GUI with full pillar pages and forge CLI bridging
-**Lines of code:** ~10,000 (7,500 Rust src/ + ~2,500 Ruby/ERB/JS)
-**Tests:** 199 passing (182 unit + 9 integration + 8 spirit CLI)
-**Hub specs:** 119 passing (0 failures)
+**Hub:** Rails 8.1 web GUI with full pillar pages, session management, journal browser, dotfiles, global search
+**Lines of code:** ~12,000 (8,500 Rust src/ + ~3,500 Ruby/ERB/JS)
+**Tests:** 199 CLI (all green) + 224 Hub specs (all green)
 **GitHub Actions:** CI (cargo test + clippy) + Release (tag-triggered binary upload)
-**Latest release:** v0.2.0 — GitHub release with binary, hub tarball, and app icon
+**Latest release:** v1.0.0
 **Data:** 102 backups across 99 git repos, 2.0 GB stored
 
 ### What Works Right Now
@@ -95,9 +94,49 @@ The project is feature-complete. Remaining items are polish and release manageme
 
 - [x] `forge bridge sync` — Sync task state across platforms (Hermes, local tasks, schedules)
 
-### v1.0 Stretch Goals
+### v0.9.0 Milestone ✅
 
-- [ ] Plugin/extension system (long-term stretch)
+- [x] Dashboard: Remove "Coming Soon" from all pillar cards — all 6 pillars now active
+- [x] Hub — Flame: Interactive scripture search, reference lookup, journal browsing
+- [x] Hub — Bellows: Agent session management, quick strike, pipeline runner
+- [x] Hub — Tongs: Diagnose output, GPU info, services list, dotfiles tracker
+- [x] Hub — Bridge: Sync dashboard, test notification form, Omarchy detection
+- [x] Hub — Specs: Request specs for all new pillar actions (49 new specs)
+- [x] Version bump to v0.9.0 (Cargo.toml + sidebar)
+- [x] Open3 timeout fixes on all controllers that shell out to forge CLI
+
+### v0.10.0 Milestone 🚧
+
+- [ ] Hub — Flame: Stimulus debounced live scripture search
+- [ ] Hub — Flame: Journal entries browser with pagination
+- [ ] Hub — Bellows: Agent session detail page with message history
+- [ ] Hub — Tongs: Dotfiles management (track/list/restore via forge grip dotfiles)
+
+### v0.10.0 Milestone ✅
+
+- [x] Hub — Flame: Stimulus debounced live scripture search
+- [x] Hub — Flame: Journal entries browser with pagination + search
+- [x] Hub — Bellows: Agent session detail page with chat-like message history
+- [x] Hub — Tongs: Dotfiles management (track/list/restore via forge grip dotfiles)
+
+### v0.11.0 Milestone 🚧
+
+- [ ] Hub — Global search across all pillars (agent in progress)
+
+### v1.0.0 Milestone ✅
+
+- [x] Version bump to 1.0.0 (Cargo.toml + sidebar)
+- [x] All 6 pillars fully interactive in both CLI and Hub
+- [x] Dashboard shows all pillars as active
+- [x] Hub: 224+ specs passing, CLI: 199 tests passing
+- [x] Open3 timeout protection on all CLI-bridging controllers
+- [x] Stimulus debounced scripture search
+- [x] Journal browser with pagination
+- [x] Agent session management with chat-style message history
+- [x] Dotfiles management (track/list/restore)
+- [x] System diagnostics with GPU, temperatures, services
+- [x] Bridge sync dashboard with notification testing
+- [x] Omarchy integration detection
 
 ---
 

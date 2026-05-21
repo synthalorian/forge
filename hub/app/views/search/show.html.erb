@@ -1,0 +1,93 @@
+<% content_for :title, @query.present? ? "Search: #{@query} — Forge Hub" : "Search — Forge Hub" %>
+
+<div class="max-w-4xl mx-auto space-y-8">
+  <!-- Search bar -->
+  <div class="bg-bg-panel/60 border border-border-faint rounded-xl p-6">
+    <form action="/search" method="get" data-controller="global-search"
+          data-global-search-target="form" class="flex gap-3">
+      <div class="flex-1 relative">
+        <input type="text"
+               name="q"
+               value="<%= @query %>"
+               placeholder="Search backups, scripture, sessions, dotfiles..."
+               data-global-search-target="input"
+               data-action="input->global-search#search keydown->global-search#submit"
+               class="w-full bg-bg-dark/80 border border-border-faint rounded-lg px-4 py-2.5 text-sm font-mono
+                      text-text-primary placeholder-text-muted/50 focus:outline-none focus:border-neon-cyan/50
+                      focus:ring-1 focus:ring-neon-cyan/30 transition-colors"
+               autocomplete="off"
+               autofocus />
+        <span data-global-search-target="badge"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-neon-cyan hidden"></span>
+      </div>
+      <button type="submit"
+              class="bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan px-5 py-2.5 rounded-lg text-sm font-mono
+                     hover:bg-neon-cyan/20 transition-colors">
+        Search
+      </button>
+    </form>
+  </div>
+
+  <% if @query.blank? %>
+    <!-- Empty state -->
+    <div class="text-center py-16">
+      <div class="text-5xl mb-4 opacity-30">🔍</div>
+      <h2 class="text-xl font-mono text-text-muted mb-2">Search the Forge</h2>
+      <p class="text-sm text-text-muted/60 font-mono">
+        Enter a query to search across backups, scripture, sessions, dotfiles, and integrations.
+      </p>
+    </div>
+  <% elsif @results.empty? %>
+    <!-- No results -->
+    <div class="text-center py-16">
+      <div class="text-5xl mb-4 opacity-30">∅</div>
+      <h2 class="text-xl font-mono text-text-muted mb-2">No results found</h2>
+      <p class="text-sm text-text-muted/60 font-mono">
+        No matches for "<span class="text-neon-cyan"><%= @query %></span>" across any pillar.
+      </p>
+    </div>
+  <% else %>
+    <!-- Results header -->
+    <div class="flex items-center justify-between">
+      <h1 class="text-lg font-mono text-text-primary">
+        Results for "<span class="text-neon-cyan"><%= @query %></span>"
+      </h1>
+      <span class="text-sm font-mono text-text-muted">
+        <%= @total_results %> <%= "result".pluralize(@total_results) %> across <%= @results.keys.length %> <%= "pillar".pluralize(@results.keys.length) %>
+      </span>
+    </div>
+
+    <!-- Grouped results -->
+    <% @results.each do |type, items| %>
+      <section class="space-y-3">
+        <div class="flex items-center gap-2">
+          <h2 class="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider"><%= type %></h2>
+          <span class="text-xs font-mono text-text-muted bg-bg-dark/50 px-2 py-0.5 rounded-full"><%= items.length %></span>
+        </div>
+
+        <div class="grid gap-2">
+          <% items.each do |item| %>
+            <a href="<%= item[:path] %>"
+               class="block bg-bg-panel/40 border border-border-faint rounded-lg p-4
+                      hover:border-neon-cyan/30 hover:bg-bg-panel/60 transition-colors group">
+              <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-sm font-mono text-text-primary group-hover:text-neon-cyan transition-colors truncate">
+                    <%= item[:title] %>
+                  </h3>
+                  <% if item[:subtitle].present? %>
+                    <p class="text-xs font-mono text-text-muted mt-1 truncate"><%= item[:subtitle] %></p>
+                  <% end %>
+                </div>
+                <span class="shrink-0 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded
+                             bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
+                  <%= item[:type] %>
+                </span>
+              </div>
+            </a>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  <% end %>
+</div>
