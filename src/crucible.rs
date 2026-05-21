@@ -618,8 +618,8 @@ fn extract_palette_from_image(
 
     // Sort by frequency, take top 8
     let mut sorted: Vec<(u32, u64)> = color_counts.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
-
+    use std::cmp::Reverse;
+    sorted.sort_by_key(|(_, count)| Reverse(*count));
     let dominant: Vec<(u8, u8, u8)> = sorted
         .iter()
         .take(8)
