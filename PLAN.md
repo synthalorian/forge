@@ -83,11 +83,20 @@ The project is feature-complete. Remaining items are polish and release manageme
 
 - [x] `forge melt markdown` — Render markdown files to terminal with formatting, colors, and headers
 
+### v0.6.0 Milestone ✅
+
+- [x] `forge melt image` — Procedural image generation from text prompts (abstract art, gradients, color fields) using the image crate
+
+### v0.7.0 Milestone
+
+- [ ] Session persistence — Store agent conversation state in agents.db for continuity across restarts
+
+### v0.8.0 Milestone
+
+- [ ] `forge bridge sync` — Sync task state across platforms (Hermes, local tasks, schedules)
+
 ### v1.0 Stretch Goals
 
-- [ ] `forge melt image` — Bridge to image generation (ComfyUI or Hermes)
-- [ ] Session persistence — Store agent conversation state in agents.db
-- [ ] `forge bridge sync` — Sync task state across platforms
 - [ ] Plugin/extension system (long-term stretch)
 
 ---
