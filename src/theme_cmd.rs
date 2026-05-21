@@ -117,7 +117,10 @@ fn run_create() -> Result<()> {
     );
     println!(
         "{}",
-        crate::theme::style_muted("Press Enter to accept the default value shown in brackets.", default)
+        crate::theme::style_muted(
+            "Press Enter to accept the default value shown in brackets.",
+            default
+        )
     );
     println!();
 
@@ -190,10 +193,7 @@ fn run_create() -> Result<()> {
     // Try to show preview if the theme loaded
     let theme_to_preview = crate::theme::get_theme(&name.to_lowercase());
     if theme_to_preview.name != "synthwave84" {
-        println!(
-            "{}",
-            crate::theme::style_bold_header("Preview:", default)
-        );
+        println!("{}", crate::theme::style_bold_header("Preview:", default));
         println!("{}", crate::theme::theme_preview(theme_to_preview));
     }
 
@@ -243,7 +243,11 @@ fn prompt_hex(slot: &str, desc: &str, default: &str) -> Result<String> {
         // Validate hex color
         let hex = trimmed.trim_start_matches('#');
         if hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
-            return Ok(if trimmed.starts_with('#') { trimmed } else { format!("#{hex}") });
+            return Ok(if trimmed.starts_with('#') {
+                trimmed
+            } else {
+                format!("#{hex}")
+            });
         }
 
         println!(
@@ -270,7 +274,12 @@ fn run_export(name: Option<&str>, format: Option<&str>) -> Result<()> {
 
     let t = crate::theme::get_default_theme();
     println!();
-    println!("{} {} → {}", crate::theme::style_success("✓", t), crate::theme::style_accent(theme_name, t), crate::theme::style_value(&fmt, t));
+    println!(
+        "{} {} → {}",
+        crate::theme::style_success("✓", t),
+        crate::theme::style_accent(theme_name, t),
+        crate::theme::style_value(&fmt, t)
+    );
     println!("{}", crate::theme::style_border(&"─".repeat(48), t));
     println!("{export}");
     Ok(())
@@ -323,14 +332,30 @@ magenta = "{ibr}"
 cyan = "#{ar:02x}{ag:02x}{ab:02x}"
 white = "{fg}"
 "##,
-        bg = bg, fg = fg, cursor = cursor,
-        er = theme.error.r, eg = theme.error.g, eb = theme.error.b,
-        sr = theme.success.r, sg = theme.success.g, sb = theme.success.b,
-        wr = theme.warning.r, wg = theme.warning.g, wb = theme.warning.b,
-        hr = theme.header.r, hg = theme.header.g, hb = theme.header.b,
-        ir = theme.info.r, ig = theme.info.g, ib = theme.info.b,
-        ar = theme.accent.r, ag = theme.accent.g, ab = theme.accent.b,
-        mr = theme.muted.r, mg = theme.muted.g, mb = theme.muted.b,
+        bg = bg,
+        fg = fg,
+        cursor = cursor,
+        er = theme.error.r,
+        eg = theme.error.g,
+        eb = theme.error.b,
+        sr = theme.success.r,
+        sg = theme.success.g,
+        sb = theme.success.b,
+        wr = theme.warning.r,
+        wg = theme.warning.g,
+        wb = theme.warning.b,
+        hr = theme.header.r,
+        hg = theme.header.g,
+        hb = theme.header.b,
+        ir = theme.info.r,
+        ig = theme.info.g,
+        ib = theme.info.b,
+        ar = theme.accent.r,
+        ag = theme.accent.g,
+        ab = theme.accent.b,
+        mr = theme.muted.r,
+        mg = theme.muted.g,
+        mb = theme.muted.b,
         ebr = brighten_color(&theme.error, 40),
         sbr = brighten_color(&theme.success, 40),
         wbr = brighten_color(&theme.warning, 40),
@@ -385,14 +410,30 @@ color7 {fg}
 color15 {fg}
 "##,
         name = theme.name,
-        bg = bg, fg = fg, cursor = cursor,
-        hr = theme.header.r, hg = theme.header.g, hb = theme.header.b,
-        mr = theme.muted.r, mg = theme.muted.g, mb = theme.muted.b,
-        er = theme.error.r, eg = theme.error.g, eb = theme.error.b,
-        sr = theme.success.r, sg = theme.success.g, sb = theme.success.b,
-        wr = theme.warning.r, wg = theme.warning.g, wb = theme.warning.b,
-        ir = theme.info.r, ig = theme.info.g, ib = theme.info.b,
-        ar = theme.accent.r, ag = theme.accent.g, ab = theme.accent.b,
+        bg = bg,
+        fg = fg,
+        cursor = cursor,
+        hr = theme.header.r,
+        hg = theme.header.g,
+        hb = theme.header.b,
+        mr = theme.muted.r,
+        mg = theme.muted.g,
+        mb = theme.muted.b,
+        er = theme.error.r,
+        eg = theme.error.g,
+        eb = theme.error.b,
+        sr = theme.success.r,
+        sg = theme.success.g,
+        sb = theme.success.b,
+        wr = theme.warning.r,
+        wg = theme.warning.g,
+        wb = theme.warning.b,
+        ir = theme.info.r,
+        ig = theme.info.g,
+        ib = theme.info.b,
+        ar = theme.accent.r,
+        ag = theme.accent.g,
+        ab = theme.accent.b,
         ebr = brighten_color(&theme.error, 40),
         sbr = brighten_color(&theme.success, 40),
         wbr = brighten_color(&theme.warning, 40),
@@ -448,14 +489,30 @@ color7 = {fg}
 color15 = {fg}
 "##,
         name = theme.name,
-        bg = bg, fg = fg, cursor = cursor,
-        hr = theme.header.r, hg = theme.header.g, hb = theme.header.b,
-        mr = theme.muted.r, mg = theme.muted.g, mb = theme.muted.b,
-        er = theme.error.r, eg = theme.error.g, eb = theme.error.b,
-        sr = theme.success.r, sg = theme.success.g, sb = theme.success.b,
-        wr = theme.warning.r, wg = theme.warning.g, wb = theme.warning.b,
-        ir = theme.info.r, ig = theme.info.g, ib = theme.info.b,
-        ar = theme.accent.r, ag = theme.accent.g, ab = theme.accent.b,
+        bg = bg,
+        fg = fg,
+        cursor = cursor,
+        hr = theme.header.r,
+        hg = theme.header.g,
+        hb = theme.header.b,
+        mr = theme.muted.r,
+        mg = theme.muted.g,
+        mb = theme.muted.b,
+        er = theme.error.r,
+        eg = theme.error.g,
+        eb = theme.error.b,
+        sr = theme.success.r,
+        sg = theme.success.g,
+        sb = theme.success.b,
+        wr = theme.warning.r,
+        wg = theme.warning.g,
+        wb = theme.warning.b,
+        ir = theme.info.r,
+        ig = theme.info.g,
+        ib = theme.info.b,
+        ar = theme.accent.r,
+        ag = theme.accent.g,
+        ab = theme.accent.b,
         ebr = brighten_color(&theme.error, 40),
         sbr = brighten_color(&theme.success, 40),
         wbr = brighten_color(&theme.warning, 40),

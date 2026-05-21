@@ -134,9 +134,7 @@ pub fn list_backups(cfg: &Config, args: &ListArgs) -> Result<()> {
         for entry in &entries {
             let type_str = match entry.backup_type {
                 crate::models::BackupType::Full => crate::theme::style_accent("full ", theme),
-                crate::models::BackupType::Incremental => {
-                    crate::theme::style_info("incr ", theme)
-                }
+                crate::models::BackupType::Incremental => crate::theme::style_info("incr ", theme),
             };
             println!(
                 "{} {} {} {} {} {} {}",

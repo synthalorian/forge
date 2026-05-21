@@ -66,7 +66,15 @@ fn spirit_word_search_no_results() {
 fn spirit_word_reference_john_3_16() {
     let tmp = forge_init();
     forge_cmd(&tmp)
-        .args(["word", "reference", "John", "--chapter", "3", "--verse", "16"])
+        .args([
+            "word",
+            "reference",
+            "John",
+            "--chapter",
+            "3",
+            "--verse",
+            "16",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("John"));
@@ -76,7 +84,11 @@ fn spirit_word_reference_john_3_16() {
 fn spirit_reflect_entry() {
     let tmp = forge_init();
     forge_cmd(&tmp)
-        .args(["reflect", "entry", "Test journal entry from integration test"])
+        .args([
+            "reflect",
+            "entry",
+            "Test journal entry from integration test",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("Journal entry"))
@@ -87,11 +99,9 @@ fn spirit_reflect_entry() {
 #[test]
 fn spirit_reflect_history_empty() {
     let tmp = forge_init();
-    forge_cmd(&tmp)
-        .arg("reflect")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("No journal entries yet").or(predicate::str::contains("Journal")));
+    forge_cmd(&tmp).arg("reflect").assert().success().stdout(
+        predicate::str::contains("No journal entries yet").or(predicate::str::contains("Journal")),
+    );
 }
 
 #[test]
