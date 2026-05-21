@@ -166,9 +166,170 @@ pub fn run_diagnose(cfg: &Config) -> Result<()> {
     );
     println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
 
-    let mut issues = 0u64;
+    let mut issues: Vec<String> = Vec::new();
 
-    // Check disk space
+    // ── GPU Detection ─────────────────────────────────────────────
+    println!("  {}", crate::theme::style_header("GPU", theme));
+
+    let nvidia = safe_command("nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits 2>/dev/null");
+    let radeon = safe_command("rocm-smi --showproductname --showuse --showtemp 2>/dev/null");
+
+    if !nvidia.trim().is_empty() {
+        for line in nvidia.lines().take(2) {
+            let parts: Vec<&str> = line.split(',').collect();
+            if parts.len() >= 3 {
+                println!(
+                    "    {} {} — {}% util, {} mem, {}°C",
+                    crate::theme::style_success("●", theme),
+                    crate::theme::style_value(parts[0].trim(), theme),
+                    crate::theme::style_info(parts[1].trim(), theme),
+                    crate::theme::style_value(
+                        &format!(
+                            "{}/{}",
+                            parts[2].trim(),
+                            parts.get(3).unwrap_or(&"?").trim()
+                        ),
+                        theme
+                    ),
+                    crate::theme::style_value(parts.get(4).unwrap_or(&"?").trim(), theme),
+                );
+            } else {
+                println!(
+                    "    {} {}",
+                    crate::theme::style_success("●", theme),
+                    crate::theme::style_value(parts[0].trim(), theme)
+                );
+            }
+        }
+    } else if !radeon.trim().is_empty() {
+        for line in radeon.lines().take(4) {
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                println!("    {}", crate::theme::style_value(trimmed, theme));
+            }
+        }
+    } else {
+        // Probe for GPU via lspci
+        let gpu_info = safe_command("lspci 2>/dev/null | grep -i 'vga\\|3d\\|display' | head -3");
+        if !gpu_info.trim().is_empty() {
+            for line in gpu_info.lines().take(2) {
+                let stripped = line.split(' ').skip(1).collect::<Vec<_>>().join(" ");
+                println!(
+                    "    {} {}",
+                    crate::theme::style_muted("○", theme),
+                    crate::theme::style_value(stripped.trim(), theme),
+                );
+                println!(
+                    "    {} {}",
+                    crate::theme::style_muted("ℹ", theme),
+                    crate::theme::style_muted(
+                        "nvidia-smi or rocm-smi not found for GPU metrics",
+                        theme
+                    ),
+                );
+            }
+        } else {
+            println!(
+                "    {}",
+                crate::theme::style_muted("No GPU detected", theme)
+            );
+        }
+    }
+    println!();
+
+    // ── Omarchy / Desktop Env ─────────────────────────────────────
+    println!(
+        "  {}",
+        crate::theme::style_header("Desktop Environment", theme)
+    );
+
+    let hyprland = safe_command("pgrep -x Hyprland 2>/dev/null");
+    let hypr_version = safe_command("hyprctl version 2>/dev/null | head -1");
+    let waybar = safe_command("pgrep -x waybar 2>/dev/null");
+    let wlroots = safe_command("pgrep -x sway 2>/dev/null");
+
+    if !hyprland.trim().is_empty() {
+        let ver = hypr_version.lines().next().unwrap_or("Hyprland");
+        println!(
+            "    {} {}",
+            crate::theme::style_success("●", theme),
+            crate::theme::style_value(ver.trim(), theme),
+        );
+        if !waybar.trim().is_empty() {
+            println!(
+                "    {} {}",
+                crate::theme::style_success("●", theme),
+                crate::theme::style_value("waybar running", theme)
+            );
+        } else {
+            println!(
+                "    {} {}",
+                crate::theme::style_muted("○", theme),
+                crate::theme::style_muted("waybar not running", theme)
+            );
+        }
+    } else if !wlroots.trim().is_empty() {
+        println!(
+            "    {} {}",
+            crate::theme::style_success("●", theme),
+            crate::theme::style_value("sway (wlroots) running", theme)
+        );
+    } else {
+        println!(
+            "    {} {}",
+            crate::theme::style_muted("○", theme),
+            crate::theme::style_muted("No wlroots compositor detected (Hyprland/Sway)", theme)
+        );
+    }
+    println!();
+
+    // ── Temperature ────────────────────────────────────────────────
+    println!("  {}", crate::theme::style_header("Temperature", theme));
+
+    let thermal = safe_command("cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -5");
+    let zones = safe_command("cat /sys/class/thermal/thermal_zone*/type 2>/dev/null | head -5");
+    let zone_types: Vec<&str> = zones.lines().collect();
+    let temps: Vec<&str> = thermal.lines().collect();
+
+    if !temps.is_empty() {
+        for (i, temp_str) in temps.iter().enumerate() {
+            if i >= zone_types.len() {
+                break;
+            }
+            let temp_c = temp_str.trim().parse::<f64>().unwrap_or(0.0) / 1000.0;
+            let zone_name = zone_types[i].trim();
+            let icon = if temp_c > 75.0 {
+                crate::theme::style_error("⚠", theme)
+            } else if temp_c > 60.0 {
+                crate::theme::style_warning("◐", theme)
+            } else {
+                crate::theme::style_success("●", theme)
+            };
+            let temp_display = format!("{:.1}°C", temp_c);
+            println!(
+                "    {} {} — {}",
+                icon,
+                crate::theme::style_label(zone_name, theme),
+                crate::theme::style_value(&temp_display, theme)
+            );
+            if temp_c > 85.0 {
+                issues.push(format!(
+                    "CPU temperature critical: {:.1}°C — check cooling!",
+                    temp_c
+                ));
+            }
+        }
+    } else {
+        println!(
+            "    {}",
+            crate::theme::style_muted("No thermal sensors available", theme)
+        );
+    }
+    println!();
+
+    // ── Disk Health ────────────────────────────────────────────────
+    println!("  {}", crate::theme::style_header("Disk Health", theme));
+
     let disk_output = safe_command("df -h / 2>/dev/null");
     let disk_percent = disk_output
         .lines()
@@ -177,120 +338,246 @@ pub fn run_diagnose(cfg: &Config) -> Result<()> {
         .and_then(|p| p.trim_end_matches('%').parse::<u64>().ok())
         .unwrap_or(0);
 
-    if disk_percent > 90 {
-        println!(
-            "  {} Disk usage at {}% — critically low!",
+    let (disk_icon, disk_label) = if disk_percent > 90 {
+        (
             crate::theme::style_error("⚠", theme),
-            crate::theme::style_error(&disk_percent.to_string(), theme),
-        );
-        issues += 1;
+            crate::theme::style_error(&format!("{}%", disk_percent), theme),
+        )
     } else if disk_percent > 75 {
-        println!(
-            "  {} Disk usage at {}% — consider cleanup",
-            crate::theme::style_error("⚠", theme),
-            crate::theme::style_value(&disk_percent.to_string(), theme),
-        );
-        issues += 1;
+        (
+            crate::theme::style_warning("◐", theme),
+            crate::theme::style_warning(&format!("{}%", disk_percent), theme),
+        )
     } else {
-        println!(
-            "  {} Disk usage: {}% — OK",
-            crate::theme::style_success("✓", theme),
-            crate::theme::style_value(&disk_percent.to_string(), theme),
-        );
+        (
+            crate::theme::style_success("●", theme),
+            crate::theme::style_value(&format!("{}%", disk_percent), theme),
+        )
+    };
+    println!("    {} Disk root: {}", disk_icon, disk_label);
+
+    if disk_percent > 90 {
+        issues.push(format!(
+            "Disk usage critically high: {}% — free up space immediately!",
+            disk_percent
+        ));
+    } else if disk_percent > 75 {
+        issues.push(format!(
+            "Disk usage high: {}% — consider cleaning up",
+            disk_percent
+        ));
     }
 
-    // Check memory
-    let mem_output = safe_command("free 2>/dev/null");
-    let mem_percent = mem_output
-        .lines()
-        .nth(2)
-        .and_then(|l| l.split_whitespace().nth(2))
-        .and_then(|p| p.parse::<u64>().ok())
-        .unwrap_or(0);
-    let mem_total = mem_output
-        .lines()
-        .nth(1)
-        .and_then(|l| l.split_whitespace().nth(1))
-        .and_then(|p| p.parse::<u64>().ok())
-        .unwrap_or(1);
-
-    let mem_usage_pct = ((mem_percent as f64 / mem_total as f64) * 100.0) as u64;
-    if mem_usage_pct > 90 {
-        println!(
-            "  {} Memory usage: {}% — critically high!",
-            crate::theme::style_error("⚠", theme),
-            crate::theme::style_error(&mem_usage_pct.to_string(), theme),
-        );
-        issues += 1;
-    } else {
-        println!(
-            "  {} Memory usage: {}%",
-            crate::theme::style_success("✓", theme),
-            crate::theme::style_value(&mem_usage_pct.to_string(), theme),
-        );
-    }
-
-    // Check essential tools
-    for tool in &["git", "zstd", "tar"] {
-        let found = safe_command(&format!("which {}", tool));
-        if found.trim().is_empty() {
+    // SMART data if available
+    let smart = safe_command("sudo smartctl -H /dev/nvme0n1 2>/dev/null || sudo smartctl -H /dev/sda 2>/dev/null || echo ''");
+    if !smart.trim().is_empty() {
+        if smart.contains("PASSED") || smart.contains("passed") {
             println!(
-                "  {} {} not found — required for backups",
-                crate::theme::style_error("✗", theme),
-                crate::theme::style_error(tool, theme),
+                "    {} {}",
+                crate::theme::style_success("●", theme),
+                crate::theme::style_value("SMART: PASSED", theme)
             );
-            issues += 1;
+        } else {
+            let smart_line = smart
+                .lines()
+                .find(|l| l.contains("health") || l.contains("status"))
+                .unwrap_or("?");
+            println!(
+                "    {} {}",
+                crate::theme::style_error("⚠", theme),
+                crate::theme::style_value(smart_line.trim(), theme)
+            );
+            issues.push("SMART health check failed — possible disk failure risk".to_string());
+        }
+    } else {
+        println!(
+            "    {} {}",
+            crate::theme::style_muted("○", theme),
+            crate::theme::style_muted(
+                "SMART data not available (try installing smartmontools)",
+                theme
+            )
+        );
+    }
+    println!();
+
+    // ── Network ────────────────────────────────────────────────────
+    println!("  {}", crate::theme::style_header("Network", theme));
+
+    let ping_ok = safe_command("ping -c 1 -W 2 8.8.8.8 2>/dev/null");
+    if !ping_ok.trim().is_empty() {
+        let ping_ms = ping_ok.lines().last().unwrap_or("");
+        let ms = ping_ms.split('/').nth(4).unwrap_or("?");
+        if let Some(ms_val) = ms.trim().parse::<f64>().ok() {
+            if ms_val > 200.0 {
+                println!(
+                    "    {} {} — {}ms (slow)",
+                    crate::theme::style_warning("◐", theme),
+                    crate::theme::style_value("Internet", theme),
+                    crate::theme::style_warning(&format!("{:.0}", ms_val), theme)
+                );
+            } else {
+                println!(
+                    "    {} {} — {}ms",
+                    crate::theme::style_success("●", theme),
+                    crate::theme::style_value("Internet", theme),
+                    crate::theme::style_value(&format!("{:.0}", ms_val), theme)
+                );
+            }
         } else {
             println!(
-                "  {} {} found",
-                crate::theme::style_success("✓", theme),
+                "    {} {} — connected",
+                crate::theme::style_success("●", theme),
+                crate::theme::style_value("Internet", theme)
+            );
+        }
+    } else {
+        println!(
+            "    {} {} — {}",
+            crate::theme::style_error("✗", theme),
+            crate::theme::style_value("Internet", theme),
+            crate::theme::style_error("not reachable", theme)
+        );
+        issues.push("Network unreachable — check your connection".to_string());
+    }
+
+    // Forge Hub check
+    let forge_hub =
+        safe_command("curl -so /dev/null -w '%{http_code}' http://localhost:3000 2>/dev/null");
+    if forge_hub.trim() == "200" || forge_hub.trim() == "302" {
+        println!(
+            "    {} {} — running on :3000",
+            crate::theme::style_success("●", theme),
+            crate::theme::style_value("Forge Hub", theme)
+        );
+    }
+
+    // DNS
+    let dns = safe_command(
+        "getent hosts github.com 2>/dev/null || host github.com 2>/dev/null || echo ''",
+    );
+    if !dns.trim().is_empty() {
+        let ip = dns.split_whitespace().find(|w| w.contains('.'));
+        if let Some(ip_str) = ip {
+            println!(
+                "    {} DNS: {}",
+                crate::theme::style_success("●", theme),
+                crate::theme::style_value(ip_str, theme)
+            );
+        }
+    }
+    println!();
+
+    // ── Essential Tools ────────────────────────────────────────────
+    println!("  {}", crate::theme::style_header("Essential Tools", theme));
+
+    for tool in &["git", "zstd", "tar", "curl", "jq"] {
+        let found = safe_command(&format!("which {} 2>/dev/null", tool));
+        if found.trim().is_empty() {
+            println!(
+                "    {} {} {}",
+                crate::theme::style_error("✗", theme),
+                crate::theme::style_error(tool, theme),
+                crate::theme::style_muted("— not found", theme),
+            );
+            issues.push(format!("{} not found — install it", tool));
+        } else {
+            println!(
+                "    {} {}",
+                crate::theme::style_success("●", theme),
                 crate::theme::style_value(tool, theme),
             );
         }
     }
+    println!();
 
-    // Check forge config
+    // ── Forge Health ───────────────────────────────────────────────
+    println!("  {}", crate::theme::style_header("Forge Health", theme));
+
     if !cfg.db_path.exists() {
         println!(
-            "  {} Forge database not found — run 'forge init'",
+            "    {} {} — {}",
             crate::theme::style_error("✗", theme),
+            crate::theme::style_value("Database", theme),
+            crate::theme::style_error("run 'forge init'", theme),
         );
-        issues += 1;
+        issues.push("Forge not initialized — run 'forge init'".to_string());
     } else {
         println!(
-            "  {} Forge database: {}",
-            crate::theme::style_success("✓", theme),
-            crate::theme::style_value(&cfg.db_path.display().to_string(), theme),
+            "    {} {}",
+            crate::theme::style_success("●", theme),
+            crate::theme::style_value("Database OK", theme),
         );
     }
 
-    // Check archive dir
     if cfg.archive_dir.exists() {
+        let archive_size = safe_command(&format!(
+            "du -sh {} 2>/dev/null | cut -f1",
+            cfg.archive_dir.display()
+        ));
         println!(
-            "  {} Archive directory: {}",
-            crate::theme::style_success("✓", theme),
-            crate::theme::style_value(&cfg.archive_dir.display().to_string(), theme),
+            "    {} {} — {}",
+            crate::theme::style_success("●", theme),
+            crate::theme::style_value("Archives", theme),
+            crate::theme::style_muted(archive_size.trim(), theme),
         );
     } else {
         println!(
-            "  {} Archive directory missing: {}",
-            crate::theme::style_error("✗", theme),
-            crate::theme::style_error(&cfg.archive_dir.display().to_string(), theme),
+            "    {} {}",
+            crate::theme::style_muted("○", theme),
+            crate::theme::style_muted("Archive directory not created yet", theme),
         );
-        issues += 1;
     }
 
+    // Check scheduled backups
+    if let Ok(conn) = crate::db::connect(cfg) {
+        let schedules: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM schedules WHERE enabled = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+        if schedules > 0 {
+            println!(
+                "    {} {} {}",
+                crate::theme::style_success("●", theme),
+                crate::theme::style_value(&format!("{} active schedule(s)", schedules), theme),
+                crate::theme::style_muted("(backup)", theme),
+            );
+        }
+    }
     println!();
-    if issues == 0 {
+
+    // ── Summary ────────────────────────────────────────────────────
+    println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
+
+    if issues.is_empty() {
         println!(
             "  {}",
             crate::theme::style_success("All systems nominal. The forge burns bright. 🔨", theme)
         );
     } else {
         println!(
-            "  {} {}",
+            "  {} {} ",
             crate::theme::style_error("⚠", theme),
-            crate::theme::style_error(&format!("{} issue(s) found — see above", issues), theme),
+            crate::theme::style_error(&format!("{} issue(s) found:", issues.len()), theme),
+        );
+        for (i, issue) in issues.iter().enumerate() {
+            println!(
+                "    {}. {}",
+                crate::theme::style_value(&(i + 1).to_string(), theme),
+                crate::theme::style_warning(issue, theme),
+            );
+        }
+        println!();
+        println!(
+            "  {} {}",
+            crate::theme::style_label("Tip:", theme),
+            crate::theme::style_muted(
+                "Run each issue through the forge — resolve one at a time.",
+                theme
+            ),
         );
     }
 

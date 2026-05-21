@@ -74,9 +74,13 @@ The project is feature-complete. Remaining items are polish and release manageme
 - [x] Show backup type (Full/Incremental) in `forge status` and `forge list` output
 - [x] Add `forge breathe pipe` — Multi-step agent pipeline definitions in TOML
 
+### v0.4.0 Milestone ✅
+
+- [x] `forge grip diagnose` — Extended system health with GPU detection, Omarchy checks, temperature, network, disk health, and fix suggestions
+- [x] `forge melt palette from-image` — Extract dominant color palette from an image file (`forge melt palette --file photo.png`)
+
 ### v1.0 Stretch Goals
 
-- [ ] `forge melt palette from-image` — Extract color palette from an image
 - [ ] `forge melt image` — Bridge to image generation (ComfyUI or Hermes)
 - [ ] `forge melt markdown` — Markdown preview/render in terminal
 - [ ] `forge grip diagnose` — Run `omarchy debug` equivalent for system health
