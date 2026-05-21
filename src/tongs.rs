@@ -771,7 +771,7 @@ pub fn run_dotfiles(cfg: &Config, action: &Option<DotfilesAction>) -> Result<()>
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-fn safe_command(cmd: &str) -> String {
+pub fn safe_command(cmd: &str) -> String {
     std::process::Command::new("sh")
         .args(["-c", cmd])
         .output()

@@ -410,4 +410,9 @@ pub enum BridgeAction {
         #[arg(help = "Message to send")]
         message: Option<String>,
     },
+    #[command(about = "Sync and display task state across platforms")]
+    Sync {
+        #[arg(short, long, help = "Show verbose details")]
+        verbose: bool,
+    },
 }
