@@ -87,9 +87,9 @@ The project is feature-complete. Remaining items are polish and release manageme
 
 - [x] `forge melt image` — Procedural image generation from text prompts (abstract art, gradients, color fields) using the image crate
 
-### v0.7.0 Milestone
+### v0.7.0 Milestone ✅
 
-- [ ] Session persistence — Store agent conversation state in agents.db for continuity across restarts
+- [x] Session persistence — Store agent conversation state in agents.db for continuity across restarts
 
 ### v0.8.0 Milestone
 
