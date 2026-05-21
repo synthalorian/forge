@@ -408,7 +408,7 @@ pub fn run_diagnose(cfg: &Config) -> Result<()> {
     if !ping_ok.trim().is_empty() {
         let ping_ms = ping_ok.lines().last().unwrap_or("");
         let ms = ping_ms.split('/').nth(4).unwrap_or("?");
-        if let Some(ms_val) = ms.trim().parse::<f64>().ok() {
+        if let Ok(ms_val) = ms.trim().parse::<f64>() {
             if ms_val > 200.0 {
                 println!(
                     "    {} {} — {}ms (slow)",
