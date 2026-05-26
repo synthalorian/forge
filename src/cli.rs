@@ -180,6 +180,19 @@ pub enum WordAction {
         #[arg(short, long, help = "Verse number")]
         verse: Option<u32>,
     },
+    #[command(about = "Reading plans — guided scripture reading")]
+    Plan {
+        #[arg(help = "Plan name to show (shows active plan if omitted)")]
+        name: Option<String>,
+        #[arg(short, long, help = "Show today's reading for active plan")]
+        today: bool,
+        #[arg(short = 'a', long, help = "Set a plan as active")]
+        activate: Option<String>,
+        #[arg(short, long, help = "List available plans")]
+        list: bool,
+        #[arg(short, long, help = "Show progress for active plan")]
+        progress: bool,
+    },
 }
 
 #[derive(Args)]
@@ -295,6 +308,13 @@ pub enum AnvilAction {
     },
     #[command(about = "Verify backup integrity")]
     Verify,
+    #[command(about = "Compare two backups and show differences")]
+    Diff {
+        #[arg(help = "First backup ID")]
+        id1: String,
+        #[arg(help = "Second backup ID (default: previous backup of same repo)")]
+        id2: Option<String>,
+    },
 }
 
 #[derive(Args)]

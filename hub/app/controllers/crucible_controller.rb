@@ -40,6 +40,40 @@ class CrucibleController < ApplicationController
       locals: { output: @output, title: "Color Palette" })
   end
 
+  def upload_palette_image
+    uploaded = params[:image]
+    format = params[:format].presence || "terminal"
+
+    unless uploaded
+      @output = "No image file provided"
+      render turbo_stream: turbo_stream.replace("crucible-palette-output",
+        partial: "crucible/command_output",
+        locals: { output: @output, title: "Color Palette" })
+      return
+    end
+
+    tempfile = nil
+    begin
+      # Save uploaded file to a tempfile
+      ext = File.extname(uploaded.original_filename).presence || ".png"
+      tempfile = Tempfile.new(["palette_upload", ext])
+      tempfile.binmode
+      tempfile.write(uploaded.read)
+      tempfile.rewind
+      tempfile.close
+
+      @output = run_forge_melt_palette_from_image(tempfile.path, format)
+    rescue StandardError => e
+      @output = "Error: #{e.message}"
+    ensure
+      tempfile&.unlink
+    end
+
+    render turbo_stream: turbo_stream.replace("crucible-palette-output",
+      partial: "crucible/command_output",
+      locals: { output: @output || "Error processing image", title: "Color Palette" })
+  end
+
   def diagram
     diag_type = params[:type].presence || "flow"
     description = params[:description].presence
