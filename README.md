@@ -113,6 +113,10 @@ forge theme list                   Browse 12 built-in themes
 forge theme preview <name>         See a theme in action
 forge theme set <name>             Apply a theme
 forge theme create                 Build your own theme (TOML)
+forge theme export <name>          Export theme to Alacritty/Kitty/Ghostty
+
+# Agent Pipelines
+forge breathe pipe <file>          Run multi-step agent pipeline from TOML definition
 ```
 
 ### Built-in Themes
@@ -177,7 +181,7 @@ The visual command center. A Rails 8 web GUI that sits on top of Forge CLI, givi
 - **Flame** — Scripture search (debounced live search), reference lookup, encrypted journal browser with pagination
 - **Bellows** — Agent detection, session management, chat-style message history, quick strike, pipeline runner
 - **Tongs** — System dashboard with GPU/temperatures/resource bars, diagnostics, dotfiles tracker, services list
-- **Crucible** — Creative tools bridge (chords, palettes, diagrams, markdown, image generation)
+- **Crucible** — Creative tools bridge (chords, palettes, diagrams, markdown, image generation, palette from-image extraction)
 - **Bridge** — Integration status for 11+ tools, lifecycle hooks, sync dashboard, notification testing, Omarchy detection
 - **Synthwave84 Theme** — Deep purple palette with neon accents, CRT scanlines, horizon glow, glass morphism
 - **Theme Switcher** — Toggle between Synthwave84, Midnight, Ocean, and Light variants
@@ -345,7 +349,13 @@ forge init
 | Hub — journal browser with pagination | ✅ Done |
 | Hub — session detail with message history | ✅ Done |
 | Hub — dotfiles management | ✅ Done |
-| Hub — global search | 🚧 In Progress |
+| Hub — global search | ✅ Done |
+||
+| **v1.1.0 — Hub Polish** | |
+| Hub — per-tab Turbo Stream output for Crucible (chords/palette/diagram) | ✅ Done |
+| Hub — palette from-image extraction via CLI bridge | ✅ Done |
+| Hub — Stimulus dotfile tracker (replaces inline JS) | ✅ Done |
+| Hub — CLI/UI feature parity alignment (harmonies, diagram types) | ✅ Done |
 
 ---
 

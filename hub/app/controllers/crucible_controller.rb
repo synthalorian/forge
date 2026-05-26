@@ -19,7 +19,7 @@ class CrucibleController < ApplicationController
     mood = params[:mood].presence
 
     @output = run_forge_melt_chords(key, scale, mood)
-    render turbo_stream: turbo_stream.replace("crucible-output",
+    render turbo_stream: turbo_stream.replace("crucible-chords-output",
       partial: "crucible/command_output",
       locals: { output: @output, title: "Chord Progression" })
   end
@@ -28,9 +28,14 @@ class CrucibleController < ApplicationController
     color = params[:color].presence
     harmony = params[:harmony].presence || "complementary"
     format = params[:format].presence || "terminal"
+    file = params[:file].presence
 
-    @output = run_forge_melt_palette(color, harmony, format)
-    render turbo_stream: turbo_stream.replace("crucible-output",
+    if file
+      @output = run_forge_melt_palette_from_image(file, format)
+    else
+      @output = run_forge_melt_palette(color, harmony, format)
+    end
+    render turbo_stream: turbo_stream.replace("crucible-palette-output",
       partial: "crucible/command_output",
       locals: { output: @output, title: "Color Palette" })
   end
@@ -40,7 +45,7 @@ class CrucibleController < ApplicationController
     description = params[:description].presence
 
     @output = run_forge_melt_diagram(diag_type, description)
-    render turbo_stream: turbo_stream.replace("crucible-output",
+    render turbo_stream: turbo_stream.replace("crucible-diagram-output",
       partial: "crucible/command_output",
       locals: { output: @output, title: "Diagram" })
   end
@@ -65,6 +70,12 @@ class CrucibleController < ApplicationController
     args << color if color.present?
     args += ["--harmony", harmony] if harmony.present?
     args += ["--format", format] if format.present?
+    run_forge_command(args)
+  end
+
+  def run_forge_melt_palette_from_image(file, format)
+    args = ["melt", "palette", "--file", file]
+    args += ["--format", format] if format.present? && format != "terminal"
     run_forge_command(args)
   end
 

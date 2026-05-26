@@ -139,19 +139,20 @@
     </div>
   </div>
 
-  <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
+  <div class="rounded-xl bg-bg-panel border border-border-faint p-5"
+       data-controller="dotfile-track">
     <h3 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">Track Dotfile</h3>
     <div class="flex gap-3 items-end">
       <div class="flex-1">
         <label class="text-xs text-text-muted block mb-1.5 font-mono">Path</label>
-        <input type="text" name="path" id="dotfile-path"
+        <input type="text" data-dotfile-track-target="input"
                placeholder="~/.config/hypr/hyprland.conf"
                class="w-full text-xs font-mono px-3 py-2 rounded-lg bg-bg-surface/30 border border-border-faint
                       text-text-primary placeholder:text-text-dim focus:border-neon-yellow/50 focus:outline-none">
       </div>
       <%= button_to "Track", "/tongs/dotfiles/track", method: :post,
           params: { path: "" },
-          form: { id: "track-dotfile-form", data: { turbo_stream: true } },
+          form: { data: { turbo_stream: true, dotfile_track_target: "form" } },
           class: "text-xs font-mono px-4 py-2 rounded-lg bg-neon-yellow/10 border border-neon-yellow/30 text-neon-yellow
                  hover:bg-neon-yellow/20 transition-colors cursor-pointer whitespace-nowrap" %>
     </div>
@@ -159,13 +160,3 @@
 
   <div id="tongs-output"></div>
 </div>
-
-<script>
-  document.getElementById("track-dotfile-form").addEventListener("submit", function(e) {
-    const pathInput = document.getElementById("dotfile-path");
-    const hiddenInput = this.querySelector("input[name='path']");
-    if (hiddenInput && pathInput) {
-      hiddenInput.value = pathInput.value;
-    }
-  });
-</script>
