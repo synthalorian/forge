@@ -18,5 +18,9 @@ export default class extends Controller {
     this.toggleIconTarget.textContent = wasCollapsed ? "◀" : "▶"
     localStorage.setItem("forge:sidebar:collapsed", !wasCollapsed)
     this.dispatch("sidebar-toggled", { detail: { collapsed: !wasCollapsed } })
+    // Show/hide mobile overlay
+    if (this.hasOverlayTarget) {
+      this.overlayTarget.style.display = wasCollapsed ? "block" : "none"
+    }
   }
 }

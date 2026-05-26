@@ -19,7 +19,10 @@
          bg-sidebar-bg border-r border-border-faint
          flex flex-col
          transition-all duration-300
-         shrink-0 overflow-y-auto overflow-x-hidden"
+         shrink-0 overflow-y-auto overflow-x-hidden
+         max-sm:fixed max-sm:inset-y-0 max-sm:left-0 max-sm:z-50
+         max-sm:shadow-2xl
+         max-sm:data-[sidebar-collapsed]:-translate-x-full"
 >
   <div class="px-5 py-5 border-b border-border-faint">
     <a href="/" class="flex items-center gap-3 group">

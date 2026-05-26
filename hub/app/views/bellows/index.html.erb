@@ -113,19 +113,59 @@
       <% end %>
     </div>
 
-    <div class="rounded-xl bg-bg-panel border border-border-faint p-5">
-      <h3 class="text-sm font-semibold text-neon-purple mb-4 uppercase tracking-wider font-mono">Pipeline Runner</h3>
-      <%= form_with url: "/bellows/pipeline", method: :post, data: { turbo_frame: "bellows-output" }, local: true do |f| %>
-        <div class="space-y-3">
-          <%= f.text_area :toml, rows: 4, placeholder: "# TOML pipeline definition...",
-              class: "w-full rounded-lg bg-bg-dark/80 border border-border-faint px-3 py-2
-                     text-sm font-mono text-text-primary placeholder-text-dim
-                     focus:border-neon-purple focus:outline-none focus:ring-1 focus:ring-neon-purple/50 resize-none" %>
-          <%= f.submit "Run Pipeline",
-              class: "w-full rounded-lg bg-neon-purple/20 border border-neon-purple/30 px-4 py-2
-                     text-sm font-mono text-neon-purple hover:bg-neon-purple/30 transition-colors cursor-pointer" %>
+    <div class="rounded-xl bg-bg-panel border border-border-faint p-5" data-controller="pipeline-builder">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-neon-purple uppercase tracking-wider font-mono">Pipeline Builder</h3>
+        <div class="flex items-center gap-2">
+          <!-- Preset dropdown -->
+          <select data-action="pipeline-builder#loadPreset"
+                  class="rounded-lg bg-bg-dark/80 border border-border-faint px-2.5 py-1.5 text-xs font-mono text-text-muted focus:border-neon-purple focus:outline-none focus:ring-1 focus:ring-neon-purple/50 cursor-pointer">
+            <option value="">Load Preset...</option>
+            <option value="code_review">Code Review</option>
+            <option value="research_write">Research & Write</option>
+            <option value="code_gen_test">Code Gen + Test</option>
+            <option value="data_pipeline">Data Pipeline</option>
+          </select>
+          <!-- Expand / Collapse toggle -->
+          <button type="button" data-action="pipeline-builder#toggleExpand"
+                  class="rounded-lg bg-bg-dark/80 border border-border-faint px-2.5 py-1.5 text-xs font-mono text-text-muted hover:text-neon-purple hover:border-neon-purple/30 transition-colors cursor-pointer"
+                  title="Toggle expand/collapse">
+            <span>▾ Collapse</span>
+          </button>
         </div>
-      <% end %>
+      </div>
+
+      <!-- Collapsed summary (always rendered) -->
+      <div data-pipeline-builder-target="collapsedInfo"
+           class="mb-3 flex flex-wrap items-center gap-1.5">
+        <span class="text-text-dim text-xs">No pipeline steps yet</span>
+      </div>
+
+      <!-- Expanded body -->
+      <div data-pipeline-builder-target="expandedBody">
+        <!-- Step cards container -->
+        <div data-pipeline-builder-target="stepsContainer" class="space-y-3 mb-4">
+          <div class="text-center py-6 text-text-dim border-2 border-dashed border-border-faint rounded-xl">
+            <p class="text-sm font-mono">No steps defined</p>
+            <p class="text-xs mt-1">Click <span class="text-neon-purple">"Add Step"</span> to begin building your pipeline</p>
+          </div>
+        </div>
+
+        <!-- Hidden step template (not used in this implementation, placeholder for toml form) -->
+        <%= form_with url: "/bellows/pipeline", method: :post, data: { turbo_frame: "bellows-output" }, local: true, id: "pipeline-form" do |f| %>
+          <%= f.hidden_field :toml, data: { pipeline_builder_target: "hiddenToml" } %>
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" data-action="pipeline-builder#addStep"
+                    class="rounded-lg bg-neon-purple/20 border border-neon-purple/30 px-4 py-2 text-sm font-mono text-neon-purple hover:bg-neon-purple/30 transition-colors cursor-pointer">
+              + Add Step
+            </button>
+            <button type="submit" data-action="pipeline-builder#submitPipeline"
+                    class="rounded-lg bg-neon-green/20 border border-neon-green/30 px-4 py-2 text-sm font-mono text-neon-green hover:bg-neon-green/30 transition-colors cursor-pointer">
+              ▶ Run Pipeline
+            </button>
+          </div>
+        <% end %>
+      </div>
     </div>
   </div>
 
