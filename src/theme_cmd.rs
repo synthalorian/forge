@@ -88,8 +88,12 @@ pub fn run(action: &ThemeAction) -> Result<()> {
         ThemeAction::Create => {
             run_create()?;
         }
-        ThemeAction::Export { name, format } => {
-            run_export(name.as_deref(), format.as_deref())?;
+        ThemeAction::Export {
+            name,
+            format,
+            write,
+        } => {
+            run_export(name.as_deref(), format.as_deref(), *write)?;
         }
     }
 
@@ -258,7 +262,7 @@ fn prompt_hex(slot: &str, desc: &str, default: &str) -> Result<String> {
     }
 }
 
-fn run_export(name: Option<&str>, format: Option<&str>) -> Result<()> {
+fn run_export(name: Option<&str>, format: Option<&str>, write: bool) -> Result<()> {
     let cfg = Config::load().ok();
     let theme_name = name
         .or_else(|| cfg.as_ref().map(|c| c.theme.as_str()))
@@ -273,15 +277,44 @@ fn run_export(name: Option<&str>, format: Option<&str>) -> Result<()> {
     };
 
     let t = crate::theme::get_default_theme();
-    println!();
-    println!(
-        "{} {} → {}",
-        crate::theme::style_success("✓", t),
-        crate::theme::style_accent(theme_name, t),
-        crate::theme::style_value(&fmt, t)
-    );
-    println!("{}", crate::theme::style_border(&"─".repeat(48), t));
-    println!("{export}");
+
+    if write {
+        let config_path = match fmt.as_str() {
+            "kitty" => {
+                let home = std::env::var("HOME").unwrap_or_default();
+                format!("{home}/.config/kitty/kitty.conf")
+            }
+            "ghostty" => {
+                let home = std::env::var("HOME").unwrap_or_default();
+                format!("{home}/.config/ghostty/config")
+            }
+            _ => {
+                let home = std::env::var("HOME").unwrap_or_default();
+                format!("{home}/.config/alacritty/alacritty.toml")
+            }
+        };
+        if let Some(parent) = std::path::Path::new(&config_path).parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&config_path, &export)?;
+        println!();
+        println!(
+            "{} {} → {}",
+            crate::theme::style_success("✓", t),
+            crate::theme::style_accent(theme_name, t),
+            crate::theme::style_value(&config_path, t),
+        );
+    } else {
+        println!();
+        println!(
+            "{} {} → {}",
+            crate::theme::style_success("✓", t),
+            crate::theme::style_accent(theme_name, t),
+            crate::theme::style_value(&fmt, t),
+        );
+        println!("{}", crate::theme::style_border(&"─".repeat(48), t));
+        println!("{export}");
+    }
     Ok(())
 }
 
