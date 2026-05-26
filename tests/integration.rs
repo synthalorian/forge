@@ -325,3 +325,218 @@ fn multiple_backups_increment_ids() -> Result<()> {
 
     Ok(())
 }
+
+// ──────────────────────────────────────────────
+// chunkstore module tests
+// ──────────────────────────────────────────────
+
+#[test]
+fn chunkstore_store_and_verify() -> Result<()> {
+    let tmp = TempDir::new()?;
+    let chunks_dir = tmp.path().join("chunks");
+    let store = forge::chunkstore::ChunkStore::new(chunks_dir, 3)?;
+
+    let data = b"Test chunk data for integration test";
+    let info = store.store_chunk(data)?;
+
+    assert!(info.is_new);
+    assert!(store.has_chunk(&info.hash));
+    assert_eq!(info.original_size, data.len());
+
+    let read_back = store.read_chunk(&info.hash)?;
+    assert_eq!(read_back, data.to_vec());
+
+    Ok(())
+}
+
+#[test]
+fn chunkstore_dedup_not_new() -> Result<()> {
+    let tmp = TempDir::new()?;
+    let store = forge::chunkstore::ChunkStore::new(tmp.path().join("chunks"), 3)?;
+
+    let data = b"Duplicate me";
+    let first = store.store_chunk(data)?;
+    assert!(first.is_new);
+
+    let second = store.store_chunk(data)?;
+    assert!(!second.is_new);
+    assert_eq!(first.hash, second.hash);
+
+    Ok(())
+}
+
+#[test]
+fn chunkstore_read_back_content_matches() -> Result<()> {
+    let tmp = TempDir::new()?;
+    let store = forge::chunkstore::ChunkStore::new(tmp.path().join("chunks"), 3)?;
+
+    let data = b"Read-back verification data";
+    let info = store.store_chunk(data)?;
+
+    let retrieved = store.read_chunk(&info.hash)?;
+    assert_eq!(retrieved, data.to_vec());
+
+    Ok(())
+}
+
+#[test]
+fn chunkstore_read_nonexistent_fails() -> Result<()> {
+    let tmp = TempDir::new()?;
+    let store = forge::chunkstore::ChunkStore::new(tmp.path().join("chunks"), 3)?;
+
+    let result = store.read_chunk("0000000000000000000000000000000000000000000000000000000000000000");
+    assert!(result.is_err());
+
+    Ok(())
+}
+
+// ──────────────────────────────────────────────
+// scheduler module tests
+// ──────────────────────────────────────────────
+
+#[test]
+fn scheduler_validate_cron_valid() -> Result<()> {
+    let forge_tmp = TempDir::new()?;
+    let cfg = test_config(&forge_tmp);
+    std::fs::create_dir_all(&cfg.archive_dir)?;
+    std::fs::create_dir_all(cfg.db_path.parent().unwrap())?;
+    std::fs::create_dir_all(&cfg.llama_swap_config.parent().unwrap())?;
+
+    // Create a real directory so the path-exists check passes
+    let target_dir = forge_tmp.path().join("myrepo");
+    std::fs::create_dir_all(&target_dir)?;
+
+    let result = forge::scheduler::run(
+        &cfg,
+        &forge::cli::ScheduleArgs {
+            action: Some(forge::cli::ScheduleAction::Add {
+                cron: "0 9 * * *".to_string(),
+                path: target_dir.to_str().expect("path").to_string(),
+            }),
+        },
+    );
+    assert!(result.is_ok(), "valid cron should succeed: {:?}", result.err());
+
+    Ok(())
+}
+
+#[test]
+fn scheduler_validate_cron_invalid() -> Result<()> {
+    let forge_tmp = TempDir::new()?;
+    let cfg = test_config(&forge_tmp);
+    std::fs::create_dir_all(&cfg.archive_dir)?;
+    std::fs::create_dir_all(cfg.db_path.parent().unwrap())?;
+    std::fs::create_dir_all(&cfg.llama_swap_config.parent().unwrap())?;
+
+    // Create a real directory so the path-exists check passes
+    let target_dir = forge_tmp.path().join("myrepo");
+    std::fs::create_dir_all(&target_dir)?;
+
+    let result = forge::scheduler::run(
+        &cfg,
+        &forge::cli::ScheduleArgs {
+            action: Some(forge::cli::ScheduleAction::Add {
+                cron: "bad".to_string(),
+                path: target_dir.to_str().expect("path").to_string(),
+            }),
+        },
+    );
+    assert!(result.is_err(), "invalid cron should fail");
+
+    Ok(())
+}
+
+// ──────────────────────────────────────────────
+// restore module tests
+// ──────────────────────────────────────────────
+
+#[test]
+fn restore_fails_invalid_id() -> Result<()> {
+    let forge_tmp = TempDir::new()?;
+    let cfg = test_config(&forge_tmp);
+    std::fs::create_dir_all(&cfg.archive_dir)?;
+
+    let result = forge::restore::run(
+        &cfg,
+        &forge::cli::RestoreArgs {
+            backup_id: "nonexistent".to_string(),
+            output: Some(forge_tmp.path().join("out").to_str().expect("path").to_string()),
+            ref_name: None,
+            dry_run: false,
+        },
+    );
+    assert!(result.is_err());
+
+    Ok(())
+}
+
+// ──────────────────────────────────────────────
+// backup module tests
+// ──────────────────────────────────────────────
+
+#[test]
+fn backup_discover_repos_in_dir() -> Result<()> {
+    // Create a real git repo in a subdirectory
+    let repo_base = TempDir::new()?;
+    let repo_dir = repo_base.path().join("myrepo");
+    std::fs::create_dir_all(&repo_dir)?;
+
+    let out = std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(&repo_dir)
+        .output()?;
+    assert!(out.status.success(), "git init failed");
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@forge.test"])
+        .current_dir(&repo_dir)
+        .output()?;
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test User"])
+        .current_dir(&repo_dir)
+        .output()?;
+
+    std::fs::write(repo_dir.join("readme.md"), "# Test Repo")?;
+
+    std::process::Command::new("git")
+        .args(["add", "."])
+        .current_dir(&repo_dir)
+        .output()?;
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "initial"])
+        .current_dir(&repo_dir)
+        .output()?;
+
+    let forge_tmp = TempDir::new()?;
+    let cfg = forge::config::Config {
+        archive_dir: forge_tmp.path().join("archives"),
+        db_path: forge_tmp.path().join("forge.db"),
+        default_compression: 3,
+        repo_paths: vec![repo_base.path().to_str().expect("path").to_string()],
+        retention: forge::config::RetentionConfig {
+            keep_daily: 7,
+            keep_weekly: 4,
+            keep_monthly: 12,
+        },
+        theme: "synthwave84".to_string(),
+        llama_swap_config: forge_tmp.path().join("llama-swap-config.yaml"),
+    };
+    std::fs::create_dir_all(&cfg.archive_dir)?;
+
+    // When all=true, run calls discover_repos(cfg) which finds repos in repo_paths.
+    // This proves the discovery machinery works end-to-end.
+    let result = forge::backup::run(
+        &cfg,
+        &forge::cli::BackupArgs {
+            path: None,
+            all: true,
+            compression: Some(3),
+            full: false,
+        },
+    );
+    assert!(result.is_ok(), "backup --all should discover and succeed: {:?}", result.err());
+
+    Ok(())
+}

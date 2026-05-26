@@ -30,6 +30,14 @@ pub fn run_melt(cfg: &Config, args: &MeltArgs) -> Result<()> {
             height,
             output,
         } => run_image(cfg, prompt, width, height, output),
+        MeltAction::Fractal {
+            preset,
+            axiom,
+            rule,
+            iterations,
+            angle,
+            output,
+        } => run_fractal(cfg, preset, axiom, rule, iterations, angle, output),
     }
 }
 
@@ -1371,6 +1379,530 @@ impl SimpleRng {
         }
         lo + (self.next() as u32) % (hi - lo)
     }
+}
+
+// ── L-System / Fractal Generator ─────────────────────────────────────
+
+fn run_fractal(
+    cfg: &Config,
+    preset: &Option<String>,
+    axiom: &Option<String>,
+    rule: &Option<String>,
+    iterations: &Option<usize>,
+    angle: &Option<f64>,
+    output_format: &Option<String>,
+) -> Result<()> {
+    let theme = crate::theme::load_from_config(cfg);
+
+    let n = iterations.unwrap_or(4);
+    let n = n.clamp(1, 8);
+    let angle_deg = angle.unwrap_or(90.0);
+    let fmt = output_format.as_deref().unwrap_or("ascii");
+
+    // Resolve preset or custom axiom/rules
+    let (resolved_axiom, resolved_rules, resolved_angle, name) =
+        resolve_lsystem_spec(preset, axiom, rule, angle_deg);
+
+    println!(
+        "{}",
+        crate::theme::style_bold_header(&format!("Forge Melt — L-System: {}", name), theme)
+    );
+    println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
+    println!(
+        "  {} {}",
+        crate::theme::style_label("Axiom:", theme),
+        crate::theme::style_value(&resolved_axiom, theme)
+    );
+    println!(
+        "  {} {}",
+        crate::theme::style_label("Rules:", theme),
+        crate::theme::style_value(&resolved_rules, theme)
+    );
+    println!(
+        "  {} {}",
+        crate::theme::style_label("Iterations:", theme),
+        crate::theme::style_value(&n.to_string(), theme)
+    );
+    println!(
+        "  {} {}°",
+        crate::theme::style_label("Angle:", theme),
+        crate::theme::style_value(&resolved_angle.to_string(), theme)
+    );
+    println!();
+
+    // Generate the L-system string
+    let lstring = generate_lsystem(&resolved_axiom, &resolved_rules, n);
+
+    println!(
+        "  {} {} symbols",
+        crate::theme::style_label("Generated:", theme),
+        crate::theme::style_value(&lstring.len().to_string(), theme)
+    );
+    println!();
+
+    if fmt == "svg" {
+        render_lsystem_svg(&lstring, resolved_angle, &theme)?;
+    } else {
+        render_lsystem_ascii(&lstring, resolved_angle, &theme);
+    }
+
+    Ok(())
+}
+
+/// Named L-system presets.
+struct LSystemSpec {
+    axiom: String,
+    rules: Vec<(char, String)>,
+    angle: f64,
+    name: String,
+}
+
+fn preset_lsystem(name: &str) -> Option<LSystemSpec> {
+    match name.to_lowercase().as_str() {
+        "koch" => Some(LSystemSpec {
+            axiom: "F".to_string(),
+            rules: vec![('F', "F+F-F-F+F".to_string())],
+            angle: 90.0,
+            name: "Koch Curve".to_string(),
+        }),
+        "dragon" => Some(LSystemSpec {
+            axiom: "FX".to_string(),
+            rules: vec![('X', "X+YF+".to_string()), ('Y', "-FX-Y".to_string())],
+            angle: 90.0,
+            name: "Dragon Curve".to_string(),
+        }),
+        "sierpinski" => Some(LSystemSpec {
+            axiom: "F-G-G".to_string(),
+            rules: vec![('F', "F-G+F+G-F".to_string()), ('G', "GG".to_string())],
+            angle: 120.0,
+            name: "Sierpinski Triangle".to_string(),
+        }),
+        "plant" | "tree" | "branching" => Some(LSystemSpec {
+            axiom: "F".to_string(),
+            rules: vec![('F', "FF+[+F-F-F]-[-F+F+F]".to_string())],
+            angle: 25.0,
+            name: "Branching Plant".to_string(),
+        }),
+        "hilbert" => Some(LSystemSpec {
+            axiom: "A".to_string(),
+            rules: vec![('A', "-BF+AFA+FB-".to_string()), ('B', "+AF-BFB-FA+".to_string())],
+            angle: 90.0,
+            name: "Hilbert Curve".to_string(),
+        }),
+        "gosper" | "flowsnake" => Some(LSystemSpec {
+            axiom: "A".to_string(),
+            rules: vec![('A', "A-B--B+A++AA+B-".to_string()), ('B', "+A-BB--B-A++A+B".to_string())],
+            angle: 60.0,
+            name: "Gosper Flowsnake".to_string(),
+        }),
+        "weed" => Some(LSystemSpec {
+            axiom: "X".to_string(),
+            rules: vec![('X', "F[-X][X]F[-X]+FX".to_string()), ('F', "FF".to_string())],
+            angle: 30.0,
+            name: "Weed".to_string(),
+        }),
+        _ => None,
+    }
+}
+
+fn resolve_lsystem_spec(
+    preset: &Option<String>,
+    axiom: &Option<String>,
+    rule: &Option<String>,
+    default_angle: f64,
+) -> (String, String, f64, String) {
+    // Try preset first
+    if let Some(p) = preset {
+        if let Some(spec) = preset_lsystem(p) {
+            let rules_str = spec
+                .rules
+                .iter()
+                .map(|(k, v)| format!("{}→{}", k, v))
+                .collect::<Vec<_>>()
+                .join(", ");
+            return (spec.axiom, rules_str, spec.angle, spec.name);
+        }
+    }
+
+    // Use custom axiom and rules
+    let ax = axiom
+        .clone()
+        .unwrap_or_else(|| "F".to_string());
+    let rules_str = rule
+        .clone()
+        .unwrap_or_else(|| "F→F+F-F-F+F".to_string());
+    let name = format!("\"{}\"", ax);
+
+    (ax, rules_str, default_angle, name)
+}
+
+/// Parse rule specification string like "F→F+F-F-F+F, X→X+YF+"
+fn parse_rules(spec: &str) -> Vec<(char, String)> {
+    let mut rules = Vec::new();
+    // Find the arrow character(s) to split on — support both ASCII and Unicode arrows
+    for part in spec.split(',') {
+        let part = part.trim();
+        // Try Unicode arrow → first, then → with different forms, then ASCII ->
+        let arrow_pos = part.find('→').or_else(|| part.find("->")).or_else(|| part.find("=>"));
+        if let Some(pos) = arrow_pos {
+            let key_char = part[..pos].trim().chars().next();
+            // For Unicode → which is 3 bytes, we need to skip past the full arrow
+            if part[pos..].starts_with('→') {
+                if let Some(k) = key_char {
+                    let val = part[pos + '→'.len_utf8()..].trim().to_string();
+                    if !val.is_empty() {
+                        rules.push((k, val));
+                    }
+                }
+            } else if part[pos..].starts_with("->") {
+                if let Some(k) = key_char {
+                    let val = part[pos + 2..].trim().to_string();
+                    if !val.is_empty() {
+                        rules.push((k, val));
+                    }
+                }
+            } else if part[pos..].starts_with("=>") {
+                if let Some(k) = key_char {
+                    let val = part[pos + 2..].trim().to_string();
+                    if !val.is_empty() {
+                        rules.push((k, val));
+                    }
+                }
+            }
+        }
+    }
+    rules
+}
+
+/// Apply production rules `n` times, starting from `axiom`.
+fn generate_lsystem(axiom: &str, rule_spec: &str, iterations: usize) -> String {
+    let rules = parse_rules(rule_spec);
+
+    let mut current = axiom.to_string();
+    for _i in 0..iterations {
+        let mut next = String::with_capacity(current.len() * 2);
+        for ch in current.chars() {
+            let mut replaced = false;
+            for (key, val) in &rules {
+                if ch == *key {
+                    next.push_str(val);
+                    replaced = true;
+                    break;
+                }
+            }
+            if !replaced {
+                next.push(ch);
+            }
+        }
+        current = next;
+    }
+    current
+}
+
+/// Turtle state for interpretation.
+#[derive(Clone, Copy)]
+struct Turtle {
+    x: f64,
+    y: f64,
+    angle: f64,
+}
+
+/// Render L-system string as ASCII art using Unicode box-drawing / line chars.
+fn render_lsystem_ascii(lstring: &str, angle_deg: f64, theme: &crate::theme::Theme) {
+    // Collect all line segments
+    let mut segments: Vec<((i32, i32), (i32, i32))> = Vec::new();
+    let mut turtle = Turtle {
+        x: 0.0,
+        y: 0.0,
+        angle: -90.0, // start pointing up
+    };
+    let step = 1.0;
+    let mut stack: Vec<Turtle> = Vec::new();
+
+    // First pass: collect segments
+    for ch in lstring.chars() {
+        match ch {
+            'F' | 'G' | 'A' | 'B' => {
+                let start = (turtle.x, turtle.y);
+                turtle.x += step * turtle.angle.to_radians().cos();
+                turtle.y += step * turtle.angle.to_radians().sin();
+                let end = (turtle.x, turtle.y);
+                segments.push((
+                    (start.0.round() as i32, start.1.round() as i32),
+                    (end.0.round() as i32, end.1.round() as i32),
+                ));
+            }
+            'f' => {
+                // Move without drawing
+                turtle.x += step * turtle.angle.to_radians().cos();
+                turtle.y += step * turtle.angle.to_radians().sin();
+            }
+            '+' => {
+                turtle.angle += angle_deg;
+            }
+            '-' => {
+                turtle.angle -= angle_deg;
+            }
+            '[' => {
+                stack.push(turtle);
+            }
+            ']' => {
+                if let Some(saved) = stack.pop() {
+                    turtle = saved;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if segments.is_empty() {
+        println!(
+            "  {}",
+            crate::theme::style_muted("No drawable segments produced.", theme)
+        );
+        return;
+    }
+
+    // Determine bounds
+    let min_x = segments
+        .iter()
+        .flat_map(|(a, b)| [a.0, b.0])
+        .min()
+        .unwrap_or(0);
+    let max_x = segments
+        .iter()
+        .flat_map(|(a, b)| [a.0, b.0])
+        .max()
+        .unwrap_or(0);
+    let min_y = segments
+        .iter()
+        .flat_map(|(a, b)| [a.1, b.1])
+        .min()
+        .unwrap_or(0);
+    let max_y = segments
+        .iter()
+        .flat_map(|(a, b)| [a.1, b.1])
+        .max()
+        .unwrap_or(0);
+
+    let width = (max_x - min_x + 1) as usize;
+    let height = (max_y - min_y + 1) as usize;
+
+    // Clamp to a reasonable canvas
+    let canvas_w = width.min(100);
+    let canvas_h = height.min(60);
+
+    // Build a set of occupied cells and their connection directions
+    use std::collections::HashSet;
+    let mut cell: HashSet<(i32, i32)> = HashSet::new();
+    let mut h_conn: HashSet<(i32, i32)> = HashSet::new(); // horizontal connections (right)
+    let mut v_conn: HashSet<(i32, i32)> = HashSet::new(); // vertical connections (down)
+    let mut d1_conn: HashSet<(i32, i32)> = HashSet::new(); // diagonal ↘ (down-right)
+    let mut d2_conn: HashSet<(i32, i32)> = HashSet::new(); // diagonal ↙ (down-left)
+
+    for (start, end) in &segments {
+        let sx = start.0 - min_x;
+        let sy = start.1 - min_y;
+        let ex = end.0 - min_x;
+        let ey = end.1 - min_y;
+
+        cell.insert((sx, sy));
+        cell.insert((ex, ey));
+
+        let dx = ex - sx;
+        let dy = ey - sy;
+
+        if dx == 1 && dy == 0 {
+            h_conn.insert((sx, sy));
+        } else if dx == -1 && dy == 0 {
+            h_conn.insert((ex, ey));
+        } else if dx == 0 && dy == 1 {
+            v_conn.insert((sx, sy));
+        } else if dx == 0 && dy == -1 {
+            v_conn.insert((ex, ey));
+        } else if dx == 1 && dy == 1 {
+            d1_conn.insert((sx, sy));
+        } else if dx == -1 && dy == -1 {
+            d1_conn.insert((ex, ey));
+        } else if dx == -1 && dy == 1 {
+            d2_conn.insert((sx, sy));
+        } else if dx == 1 && dy == -1 {
+            d2_conn.insert((ex, ey));
+        }
+    }
+
+    // Render the grid
+    println!("  {} {}×{}", 
+        crate::theme::style_label("Canvas:", theme),
+        crate::theme::style_value(&canvas_w.to_string(), theme),
+        crate::theme::style_value(&canvas_h.to_string(), theme)
+    );
+    println!();
+
+    for y in 0..canvas_h {
+        let mut line = String::with_capacity(canvas_w);
+        for x in 0..canvas_w {
+            let cx = x as i32;
+            let cy = y as i32;
+
+            if !cell.contains(&(cx, cy)) {
+                line.push(' ');
+                continue;
+            }
+
+            let has_right = h_conn.contains(&(cx, cy));
+            let has_down = v_conn.contains(&(cx, cy));
+            let has_d1 = d1_conn.contains(&(cx, cy)); // ↘
+            let has_d2 = d2_conn.contains(&(cx, cy)); // ↙
+            let has_left = h_conn.contains(&(cx - 1, cy));
+            let has_up = v_conn.contains(&(cx, cy - 1));
+            let has_d1_inv = d1_conn.contains(&(cx - 1, cy - 1)); // ↖ (incoming ↘)
+            let has_d2_inv = d2_conn.contains(&(cx + 1, cy - 1)); // ↗ (incoming ↙)
+
+            let ch = match (has_right, has_down, has_left, has_up, has_d1, has_d2, has_d1_inv, has_d2_inv) {
+                // Straight lines
+                (true, false, true, false, false, false, false, false) => '─',
+                (false, true, false, true, false, false, false, false) => '│',
+                // Diagonals
+                (false, false, false, false, true, false, false, false) => '╱',
+                (false, false, false, false, false, true, false, false) => '╲',
+                (false, false, false, false, false, false, true, false) => '╱',
+                (false, false, false, false, false, false, false, true) => '╲',
+                // Corners
+                (true, true, false, false, false, false, false, false) => '┌',
+                (false, true, true, false, false, false, false, false) => '┐',
+                (true, false, false, true, false, false, false, false) => '└',
+                (false, false, true, true, false, false, false, false) => '┘',
+                // Crossings
+                (true, true, true, false, false, false, false, false) => '├',
+                (true, true, false, true, false, false, false, false) => '┴',
+                (false, true, true, true, false, false, false, false) => '┤',
+                (true, false, true, true, false, false, false, false) => '┬',
+                (true, true, true, true, false, false, false, false) => '┼',
+                // Isolated / default
+                _ => '•',
+            };
+            line.push(ch);
+        }
+        if !line.trim().is_empty() {
+            println!("  {}", crate::theme::style_accent(&line, theme));
+        }
+    }
+    println!();
+    println!(
+        "  {} {} segments, {}×{} bounding box",
+        crate::theme::style_success("✓", theme),
+        crate::theme::style_value(&segments.len().to_string(), theme),
+        crate::theme::style_muted(&width.to_string(), theme),
+        crate::theme::style_muted(&height.to_string(), theme),
+    );
+}
+
+/// Render L-system to SVG format printed to stdout.
+fn render_lsystem_svg(
+    lstring: &str,
+    angle_deg: f64,
+    theme: &crate::theme::Theme,
+) -> Result<()> {
+    let mut points: Vec<(f64, f64)> = Vec::new();
+    let mut turtle = Turtle {
+        x: 0.0,
+        y: 0.0,
+        angle: -90.0,
+    };
+    let step = 5.0;
+    let mut stack: Vec<Turtle> = Vec::new();
+
+    let mut min_x: f64 = 0.0;
+    let mut max_x: f64 = 0.0;
+    let mut min_y: f64 = 0.0;
+    let mut max_y: f64 = 0.0;
+
+    points.push((turtle.x, turtle.y));
+
+    for ch in lstring.chars() {
+        match ch {
+            'F' | 'G' | 'A' | 'B' => {
+                turtle.x += step * turtle.angle.to_radians().cos();
+                turtle.y += step * turtle.angle.to_radians().sin();
+                points.push((turtle.x, turtle.y));
+                min_x = min_x.min(turtle.x);
+                max_x = max_x.max(turtle.x);
+                min_y = min_y.min(turtle.y);
+                max_y = max_y.max(turtle.y);
+            }
+            'f' => {
+                turtle.x += step * turtle.angle.to_radians().cos();
+                turtle.y += step * turtle.angle.to_radians().sin();
+            }
+            '+' => {
+                turtle.angle += angle_deg;
+            }
+            '-' => {
+                turtle.angle -= angle_deg;
+            }
+            '[' => {
+                stack.push(turtle);
+            }
+            ']' => {
+                if let Some(saved) = stack.pop() {
+                    turtle = saved;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if points.len() < 2 {
+        println!(
+            "  {}",
+            crate::theme::style_muted("Not enough points for SVG.", theme)
+        );
+        return Ok(());
+    }
+
+    let padding = 20.0;
+    let view_w = (max_x - min_x) + padding * 2.0;
+    let view_h = (max_y - min_y) + padding * 2.0;
+
+    // Build SVG path data from consecutive point pairs
+    let mut path_data = String::new();
+    for chunk in points.chunks(2) {
+        if chunk.len() == 2 {
+            let x1 = chunk[0].0 - min_x + padding;
+            let y1 = chunk[0].1 - min_y + padding;
+            let x2 = chunk[1].0 - min_x + padding;
+            let y2 = chunk[1].1 - min_y + padding;
+            path_data.push_str(&format!("M {:.1} {:.1} L {:.1} {:.1} ", x1, y1, x2, y2));
+        }
+    }
+
+    // Detect theme foreground color for stroke
+    let stroke = "currentColor";
+
+    println!("{}", r#"  <svg xmlns="http://www.w3.org/2000/svg""#);
+    println!(
+        r#"    viewBox="0 0 {:.0} {:.0}" {}>"#,
+        view_w.ceil(),
+        view_h.ceil(),
+        ""
+    );
+    println!("    <path d=\"{}\"", path_data.trim());
+    println!(
+        "          fill=\"none\" stroke=\"{}\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>",
+        stroke
+    );
+    println!("  </svg>");
+
+    println!();
+    println!(
+        "  {} {} points, path {} bytes",
+        crate::theme::style_success("✓", theme),
+        crate::theme::style_value(&points.len().to_string(), theme),
+        crate::theme::style_muted(&path_data.len().to_string(), theme),
+    );
+
+    Ok(())
 }
 
 #[cfg(test)]

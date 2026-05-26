@@ -151,6 +151,8 @@ pub enum ThemeAction {
         name: Option<String>,
         #[arg(short, long, help = "Export format: alacritty, kitty, ghostty")]
         format: Option<String>,
+        #[arg(short, long, help = "Write directly to terminal config file")]
+        write: bool,
     },
 }
 
@@ -312,6 +314,19 @@ pub enum GripAction {
     },
     #[command(about = "System health check")]
     Diagnose,
+    #[command(about = "Install or list git hooks for auto-backup on commit")]
+    Hooks {
+        #[command(subcommand)]
+        action: Option<HooksAction>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum HooksAction {
+    #[command(about = "Install forge post-commit hook in current repo")]
+    Install,
+    #[command(about = "List installed forge hooks in current repo")]
+    List,
 }
 
 #[derive(Subcommand)]
@@ -387,6 +402,21 @@ pub enum MeltAction {
         #[arg(short, long, help = "Output height in pixels (default: 600)")]
         height: Option<u32>,
         #[arg(short, long, help = "Output path (default: ~/.forge/images/)")]
+        output: Option<String>,
+    },
+    #[command(about = "Generate L-system fractals (Koch, Dragon, Sierpinski, Plant)")]
+    Fractal {
+        #[arg(help = "Named preset or custom axiom. Presets: koch, dragon, sierpinski, plant")]
+        preset: Option<String>,
+        #[arg(long, help = "Custom axiom string (overrides preset)")]
+        axiom: Option<String>,
+        #[arg(long, help = "Production rule(s) in format: X→Y+F, Y→FX (comma-separated)")]
+        rule: Option<String>,
+        #[arg(long, default_value = "4", help = "Number of iterations (1-8)")]
+        iterations: Option<usize>,
+        #[arg(long, default_value = "90", help = "Turn angle in degrees")]
+        angle: Option<f64>,
+        #[arg(long, default_value = "ascii", help = "Output format: ascii, svg")]
         output: Option<String>,
     },
 }

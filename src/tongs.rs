@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 
-use crate::cli::{DotfilesAction, GripAction, GripArgs};
+use crate::cli::{DotfilesAction, GripAction, GripArgs, HooksAction};
 use crate::config::Config;
 
 /// Run the grip subcommand.
@@ -19,6 +19,7 @@ pub fn run_grip(cfg: &Config, args: &GripArgs) -> Result<()> {
         Some(GripAction::Dashboard) | None => run_dashboard(cfg),
         Some(GripAction::Diagnose) => run_diagnose(cfg),
         Some(GripAction::Dotfiles { action }) => run_dotfiles(cfg, action),
+        Some(GripAction::Hooks { action }) => run_hooks_handler(cfg, action),
     }
 }
 
@@ -858,6 +859,127 @@ fn detect_services() -> Vec<String> {
     }
 
     services
+}
+
+// ── Git Hooks ──────────────────────────────────────────────────────
+
+/// Handle `forge grip hooks` subcommand.
+pub fn run_hooks_handler(cfg: &Config, action: &Option<HooksAction>) -> Result<()> {
+    let theme = crate::theme::load_from_config(cfg);
+    match action {
+        Some(HooksAction::Install) => install_hook(cfg, theme),
+        Some(HooksAction::List) | None => list_hooks(cfg, theme),
+    }
+}
+
+fn install_hook(cfg: &Config, theme: &crate::theme::Theme) -> Result<()> {
+    let git_dir = std::process::Command::new("git")
+        .args(["rev-parse", "--git-dir"])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default();
+
+    if git_dir.is_empty() {
+        anyhow::bail!("Not inside a git repository");
+    }
+
+    let hook_path = std::path::PathBuf::from(&git_dir).join("hooks").join("post-commit");
+    let hook_content = r#"#!/bin/bash
+# Forge auto-backup hook — installed by `forge grip hooks install`
+forge quench "$(git rev-parse --show-toplevel)" 2>/dev/null || true
+"#;
+
+    if let Some(parent) = hook_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&hook_path, hook_content)?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&hook_path, std::fs::Permissions::from_mode(0o755))?;
+    }
+
+    println!();
+    println!(
+        "{} {}",
+        crate::theme::style_success("✓", theme),
+        crate::theme::style_accent("Forge post-commit hook installed", theme),
+    );
+    println!(
+        "  {} {}",
+        crate::theme::style_label("Path:", theme),
+        crate::theme::style_value(hook_path.to_string_lossy().as_ref(), theme),
+    );
+    println!(
+        "  {} {}",
+        crate::theme::style_muted("ℹ", theme),
+        crate::theme::style_muted("Every commit will now auto-backup via forge quench", theme),
+    );
+    println!();
+
+    Ok(())
+}
+
+fn list_hooks(cfg: &Config, theme: &crate::theme::Theme) -> Result<()> {
+    let git_dir = std::process::Command::new("git")
+        .args(["rev-parse", "--git-dir"])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default();
+
+    println!();
+    println!(
+        "{}",
+        crate::theme::style_bold_header("Forge Grip — Git Hooks", theme)
+    );
+    println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
+
+    if git_dir.is_empty() {
+        println!(
+            "  {} {}",
+            crate::theme::style_muted("○", theme),
+            crate::theme::style_muted("Not inside a git repository", theme),
+        );
+        println!();
+        return Ok(());
+    }
+
+    let hooks_dir = std::path::PathBuf::from(&git_dir).join("hooks");
+    let forge_hook = hooks_dir.join("post-commit");
+
+    if forge_hook.exists() {
+        let content = std::fs::read_to_string(&forge_hook).unwrap_or_default();
+        if content.contains("forge") {
+            println!(
+                "  {} {}",
+                crate::theme::style_success("●", theme),
+                crate::theme::style_value("post-commit — forge hook installed", theme),
+            );
+        } else {
+            println!(
+                "  {} {}",
+                crate::theme::style_warning("◐", theme),
+                crate::theme::style_value("post-commit — exists but not a forge hook", theme),
+            );
+        }
+    } else {
+        println!(
+            "  {} {}",
+            crate::theme::style_muted("○", theme),
+            crate::theme::style_muted("No forge hooks installed", theme),
+        );
+    }
+
+    println!();
+    println!(
+        "  {} {}",
+        crate::theme::style_muted("Tip:", theme),
+        crate::theme::style_value("forge grip hooks install", theme),
+    );
+    println!();
+
+    Ok(())
 }
 
 #[cfg(test)]

@@ -54,6 +54,7 @@ class Anvil::BackupsController < ApplicationController
     raise ActiveRecord::RecordNotFound unless @backup
 
     @archive_entries = list_archive_contents(@backup[:archive_path])
+    @file_tree = build_file_tree(@archive_entries[:entries]) if @archive_entries[:entries].any?
   rescue Forge::Database::NotFoundError
     render "anvil/no_forge"
   end
@@ -126,7 +127,7 @@ class Anvil::BackupsController < ApplicationController
       end
 
       tar_stdout, tar_stderr, tar_status = Open3.capture3(
-        "tar", "-tf", "-", :stdin_data => stdout
+        "tar", "-tvf", "-", :stdin_data => stdout
       )
 
       unless tar_status.success?
@@ -134,9 +135,19 @@ class Anvil::BackupsController < ApplicationController
       end
 
       entries = tar_stdout.split("\n").reject(&:blank?).map do |line|
-        path = line.chomp("/")
-        is_dir = line.end_with?("/")
-        { path: path, directory: is_dir }
+        # tar -tvf format:
+        # drwxr-xr-x user/group       0 2024-01-01 12:00 path/to/dir/
+        # -rw-r--r-- user/group    1234 2024-01-01 12:00 path/to/file
+        parts = line.split(/\s+/)
+        perms = parts[0] || ""
+        size = parts[2].to_i
+        # Path is everything after the date-time fields (5th split onward)
+        full_path = parts[5..]&.join(" ") || ""
+        full_path = full_path.chomp("/")
+
+        is_dir = perms.start_with?("d") || line.end_with?("/")
+
+        { path: full_path, directory: is_dir, size: size, permissions: perms }
       end
 
       { entries: entries, error: nil, total_count: entries.size }

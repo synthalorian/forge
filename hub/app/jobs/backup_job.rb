@@ -8,6 +8,7 @@ class BackupJob < ApplicationJob
       raise "Backup already in progress"
     end
     broadcast_status(job_id, "running", "Starting backup...")
+    broadcast_via_action_cable(job_id, "running", "Starting backup...")
 
     binary = Forge::Client.new.bin_path
     cmd = [binary]
@@ -18,23 +19,28 @@ class BackupJob < ApplicationJob
 
       stdout.each_line do |line|
         broadcast_output(job_id, line.chomp)
+        broadcast_via_action_cable(job_id, "output", line.chomp)
       end
 
       stderr.each_line do |line|
         broadcast_output(job_id, "STDERR: #{line.chomp}")
+        broadcast_via_action_cable(job_id, "stderr", line.chomp)
       end
 
       exit_status = wait_thr.value
       if exit_status.success?
         broadcast_status(job_id, "success", "Backup complete!")
+        broadcast_via_action_cable(job_id, "success", "Backup complete!")
         Rails.cache.write("forge_backup_result", { "status" => "success", "message" => "Backup complete!" })
       else
         broadcast_status(job_id, "error", "Backup failed with exit code #{exit_status.exitstatus}")
+        broadcast_via_action_cable(job_id, "error", "Backup failed with exit code #{exit_status.exitstatus}")
         Rails.cache.write("forge_backup_result", { "status" => "error", "message" => "Backup failed with exit code #{exit_status.exitstatus}" })
       end
     end
   rescue => e
     broadcast_status(job_id, "error", e.message)
+    broadcast_via_action_cable(job_id, "error", e.message)
     Rails.cache.write("forge_backup_result", { "status" => "error", "message" => e.message })
   ensure
     Rails.cache.delete("forge_backup_running")
@@ -60,6 +66,18 @@ class BackupJob < ApplicationJob
       "backup_progress_#{job_id}",
       target: "backup-status",
       html: "<span id=\"backup-status\" class=\"#{color} font-mono text-sm\">#{ERB::Util.html_escape(message)}</span>"
+    )
+  end
+
+  def broadcast_via_action_cable(job_id, event_type, message)
+    ActionCable.server.broadcast(
+      "backup_progress_#{job_id}",
+      {
+        type: event_type,
+        message: message,
+        job_id: job_id,
+        timestamp: Time.current.iso8601
+      }
     )
   end
 end
