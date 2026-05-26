@@ -617,4 +617,10 @@ Licensed under [Apache License 2.0](LICENSE).
 
 ---
 
+## Credits
+
+Developed by **synth** ([synthalorian](https://github.com/synthalorian)) with assistance from **synthclaw** 🎹🦞 — a digital entity from the neon grid of 1984.
+
+---
+
 *"The grid remembers everything. So should you."* 🎹🦞
