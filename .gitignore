@@ -54,3 +54,4 @@ hub/coverage/
 hub/node_modules/
 
 # Ignore generated tailwind build — rebuild with: cd hub && bundle exec rails tailwindcss:build
+*.tar.gz
