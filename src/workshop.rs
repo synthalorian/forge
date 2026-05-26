@@ -291,14 +291,38 @@ pub fn run_alloy(cfg: &Config) -> Result<()> {
     Ok(())
 }
 
-/// `forge cast` — Deploy current project.
+/// Helper: run a command and return trimmed stdout, or error message.
+fn cmd_stdout(program: &str, args: &[&str], dir: &std::path::Path) -> Result<String> {
+    let out = std::process::Command::new(program)
+        .args(args)
+        .current_dir(dir)
+        .output()
+        .map_err(|e| anyhow::anyhow!("Failed to execute `{}`: {}", program, e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+        anyhow::bail!("`{}` failed: {}", program, stderr.trim());
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+/// Helper: run a command, check success, return Ok(status.success).
+fn cmd_status(program: &str, args: &[&str], dir: &std::path::Path) -> Result<bool> {
+    let status = std::process::Command::new(program)
+        .args(args)
+        .current_dir(dir)
+        .status()
+        .map_err(|e| anyhow::anyhow!("Failed to execute `{}`: {}", program, e))?;
+    Ok(status.success())
+}
+
+/// `forge cast` — Create a GitHub release with binary and asset uploads.
 pub fn run_cast(cfg: &Config) -> Result<()> {
     let theme = crate::theme::load_from_config(cfg);
 
     println!();
     println!(
         "{}",
-        crate::theme::style_bold_header("🚀 Forge Cast — Deploy Project", theme)
+        crate::theme::style_bold_header("🚀 Forge Cast — GitHub Release", theme)
     );
     println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
 
@@ -318,130 +342,346 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
         crate::theme::style_label("Path:", theme),
         crate::theme::style_muted(&cwd.display().to_string(), theme),
     );
+    println!();
 
-    // Check if it's a git repo
-    let is_git = cwd.join(".git").exists();
-    if is_git {
+    // ── Step 1: Detect project ──────────────────────────────────
+    println!(
+        "  {}",
+        crate::theme::style_header("Step 1: Detecting project", theme)
+    );
+
+    // Must be a git repo
+    let repo_root = cmd_stdout("git", &["rev-parse", "--show-toplevel"], &cwd)
+        .map_err(|_| anyhow::anyhow!("Not a git repository — run `forge cast` from inside a git repo"))?;
+    let repo_root = std::path::Path::new(&repo_root).to_path_buf();
+
+    println!(
+        "  {} Git root: {}",
+        crate::theme::style_success("✓", theme),
+        crate::theme::style_muted(&repo_root.display().to_string(), theme),
+    );
+
+    // Get remote origin to derive owner/repo
+    let remote_url = cmd_stdout(
+        "git",
+        &["remote", "get-url", "origin"],
+        &repo_root,
+    )
+    .map_err(|_| anyhow::anyhow!("No git remote 'origin' configured — cannot determine GitHub repo"))?;
+
+    // Parse owner/repo from remote URL (supports git@github.com:owner/repo and https://github.com/owner/repo)
+    let repo_slug = remote_url
+        .trim()
+        .trim_start_matches("https://github.com/")
+        .trim_start_matches("git@github.com:")
+        .trim_end_matches(".git");
+    let repo_slug = repo_slug.to_string();
+
+    if !repo_slug.contains('/') {
+        anyhow::bail!("Could not parse GitHub owner/repo from remote URL: {}", remote_url);
+    }
+
+    println!(
+        "  {} GitHub repo: {}",
+        crate::theme::style_success("✓", theme),
+        crate::theme::style_value(&repo_slug, theme),
+    );
+
+    // Get version from Cargo.toml
+    let cargo_toml = repo_root.join("Cargo.toml");
+    if !cargo_toml.exists() {
+        anyhow::bail!("No Cargo.toml found — forge cast currently supports Rust projects");
+    }
+
+    let cargo_content = std::fs::read_to_string(&cargo_toml)?;
+    let version_line = cargo_content
+        .lines()
+        .find(|l| l.trim().starts_with("version = "))
+        .ok_or_else(|| anyhow::anyhow!("Could not find version in Cargo.toml"))?;
+    let version = version_line
+        .trim()
+        .trim_start_matches("version = ")
+        .trim_matches('"')
+        .trim_matches('\'')
+        .to_string();
+
+    println!(
+        "  {} Version: {}",
+        crate::theme::style_success("✓", theme),
+        crate::theme::style_value(&version, theme),
+    );
+
+    // Check branch — we want main or master
+    let branch = cmd_stdout("git", &["branch", "--show-current"], &repo_root).unwrap_or_default();
+    if !branch.is_empty() {
         println!(
-            "  {} Git repository detected",
-            crate::theme::style_success("✓", theme),
-        );
-
-        // Get current branch
-        let branch = std::process::Command::new("git")
-            .args(["branch", "--show-current"])
-            .current_dir(&cwd)
-            .output()
-            .ok()
-            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-            .unwrap_or_default();
-
-        if !branch.is_empty() {
-            println!(
-                "  {} {}",
-                crate::theme::style_label("Branch:", theme),
-                crate::theme::style_accent(&branch, theme),
-            );
-        }
-
-        // Check for uncommitted changes
-        let dirty = std::process::Command::new("git")
-            .args(["diff", "--quiet"])
-            .current_dir(&cwd)
-            .status()
-            .map(|s| !s.success())
-            .unwrap_or(false);
-
-        if dirty {
-            println!(
-                "  {} Uncommitted changes detected — commit before casting!",
-                crate::theme::style_error("⚠", theme),
-            );
-        }
-    } else {
-        println!(
-            "  {} Not a git repository",
-            crate::theme::style_error("✗", theme),
+            "  {} Branch: {}",
+            crate::theme::style_label("Branch:", theme),
+            crate::theme::style_accent(&branch, theme),
         );
     }
 
-    // Detect project type
-    let project_type = detect_project_type(&cwd);
-    if let Some(ref pt) = project_type {
+    // Check for uncommitted changes
+    let has_uncommitted = !cmd_status("git", &["diff", "--quiet"], &repo_root).unwrap_or(true);
+    if has_uncommitted {
         println!(
-            "  {} {}",
-            crate::theme::style_label("Type:", theme),
-            crate::theme::style_value(pt, theme),
+            "  {} Uncommitted changes detected",
+            crate::theme::style_error("⚠", theme),
+        );
+    } else {
+        println!(
+            "  {} Working tree clean",
+            crate::theme::style_success("✓", theme),
         );
     }
 
     println!();
 
-    // Deployment suggestions based on type
-    if let Some(ref pt) = project_type {
-        match pt.as_str() {
-            "Rust" => {
-                println!(
-                    "  {}",
-                    crate::theme::style_header("Deployment Steps", theme)
-                );
-                println!(
-                    "  {} {} Build release",
-                    crate::theme::style_muted("1.", theme),
-                    crate::theme::style_value("cargo build --release", theme),
-                );
-                println!(
-                    "  {} {} Run quality checks",
-                    crate::theme::style_muted("2.", theme),
-                    crate::theme::style_value("cargo test && cargo clippy", theme),
-                );
-                println!(
-                    "  {} {} (optional) Publish to crates.io",
-                    crate::theme::style_muted("3.", theme),
-                    crate::theme::style_value("cargo publish", theme),
-                );
-            }
-            "Node.js" => {
-                println!(
-                    "  {}",
-                    crate::theme::style_header("Deployment Steps", theme)
-                );
-                println!(
-                    "  {} {} Build",
-                    crate::theme::style_muted("1.", theme),
-                    crate::theme::style_value("npm run build", theme),
-                );
-                println!(
-                    "  {} {} Deploy via platform of choice",
-                    crate::theme::style_muted("2.", theme),
-                    crate::theme::style_value("vercel / netlify / docker", theme),
-                );
-            }
-            "Ruby" => {
-                println!(
-                    "  {}",
-                    crate::theme::style_header("Deployment Steps", theme)
-                );
-                println!(
-                    "  {} {} Run tests",
-                    crate::theme::style_muted("1.", theme),
-                    crate::theme::style_value("bundle exec rake", theme),
-                );
-                println!(
-                    "  {} {} Deploy",
-                    crate::theme::style_muted("2.", theme),
-                    crate::theme::style_value("cap deploy / kamal deploy", theme),
-                );
-            }
-            _ => {
-                println!(
-                    "  {} Generic project — build and deploy as appropriate.",
-                    crate::theme::style_muted("ℹ", theme),
-                );
-            }
-        }
+    // ── Step 2: Build release binary ────────────────────────────
+    println!(
+        "  {}",
+        crate::theme::style_header("Step 2: Building release binary", theme)
+    );
+
+    let build_ok = cmd_status("cargo", &["build", "--release"], &repo_root)?;
+    if !build_ok {
+        anyhow::bail!("cargo build --release failed");
+    }
+    println!(
+        "  {} Release binary built",
+        crate::theme::style_success("✓", theme),
+    );
+    println!();
+
+    // ── Step 3: Create GitHub release ───────────────────────────
+    println!(
+        "  {}",
+        crate::theme::style_header("Step 3: Creating GitHub release", theme)
+    );
+
+    // Check gh CLI availability
+    let gh_available = cmd_status("which", &["gh"], &cwd).unwrap_or(false)
+        || cmd_status("command", &["-v", "gh"], &cwd).unwrap_or(false);
+    if !gh_available {
+        anyhow::bail!("GitHub CLI (`gh`) is not installed. Install it from https://cli.github.com/");
     }
 
+    // Check gh auth status
+    let auth_ok = cmd_status("gh", &["auth", "status"], &cwd).unwrap_or(false);
+    if !auth_ok {
+        anyhow::bail!("Not authenticated with GitHub CLI. Run `gh auth login` first.");
+    }
+    println!(
+        "  {} GitHub CLI authenticated",
+        crate::theme::style_success("✓", theme),
+    );
+
+    // Generate release notes from git log since last tag
+    let last_tag = cmd_stdout("git", &["describe", "--tags", "--abbrev=0"], &repo_root).ok();
+    let release_notes = if let Some(ref tag) = last_tag {
+        cmd_stdout(
+            "git",
+            &["log", "--oneline", "--no-decorate", &format!("{}..HEAD", tag)],
+            &repo_root,
+        )
+        .unwrap_or_default()
+    } else {
+        // First release — get all commits
+        cmd_stdout("git", &["log", "--oneline", "--no-decorate"], &repo_root).unwrap_or_default()
+    };
+
+    let tag_name = format!("v{}", version);
+    let title = format!("v{}", version);
+
+    // Write notes to temp file for gh release create
+    let notes_content = if release_notes.is_empty() {
+        format!("Release version {}", version)
+    } else {
+        format!("Release version {}\n\n{}", version, release_notes)
+    };
+
+    let notes_path = repo_root.join(".forge_release_notes.md");
+    std::fs::write(&notes_path, &notes_content)?;
+
+    // Build the gh release create command
+    let binary_path = repo_root.join("target/release/forge");
+    let binary_str = binary_path.to_string_lossy().to_string();
+
+    println!(
+        "  {} Creating release {}...",
+        crate::theme::style_label("→", theme),
+        crate::theme::style_value(&tag_name, theme),
+    );
+
+    // gh release create v<VERSION> <binary> --title <title> --notes-file <file> --repo <slug>
+    let create_result = std::process::Command::new("gh")
+        .args([
+            "release",
+            "create",
+            &tag_name,
+            &binary_str,
+            "--title",
+            &title,
+            "--notes-file",
+            &notes_path.to_string_lossy(),
+            "--repo",
+            &repo_slug,
+        ])
+        .current_dir(&repo_root)
+        .status()
+        .map_err(|e| anyhow::anyhow!("Failed to run `gh release create`: {}", e))?;
+
+    if !create_result.success() {
+        // Clean up temp notes file
+        let _ = std::fs::remove_file(&notes_path);
+        anyhow::bail!("GitHub release creation failed");
+    }
+
+    // Clean up temp notes file
+    let _ = std::fs::remove_file(&notes_path);
+
+    println!(
+        "  {} Release {} created",
+        crate::theme::style_success("✓", theme),
+        crate::theme::style_value(&tag_name, theme),
+    );
+    println!();
+
+    // ── Step 4: Upload assets ───────────────────────────────────
+    println!(
+        "  {}",
+        crate::theme::style_header("Step 4: Uploading assets", theme)
+    );
+
+    let mut assets_uploaded = 0u64;
+
+    // Upload forge-hub.tar.gz if hub/ exists
+    let hub_dir = repo_root.join("hub");
+    if hub_dir.is_dir() {
+        let tarball_path = repo_root.join("forge-hub.tar.gz");
+        println!(
+            "  {} Creating hub tarball...",
+            crate::theme::style_label("→", theme),
+        );
+
+        // Create tarball from hub/ directory using tar
+        let tar_ok = cmd_status(
+            "tar",
+            &["czf", &tarball_path.to_string_lossy(), "-C", &repo_root.to_string_lossy(), "hub"],
+            &repo_root,
+        ).unwrap_or(false);
+
+        if tar_ok {
+            println!(
+                "  {} Hub tarball created",
+                crate::theme::style_success("✓", theme),
+            );
+
+            // Upload tarball to release
+            let upload_ok = cmd_status(
+                "gh",
+                &[
+                    "release",
+                    "upload",
+                    &tag_name,
+                    &tarball_path.to_string_lossy(),
+                    "--repo",
+                    &repo_slug,
+                    "--clobber",
+                ],
+                &repo_root,
+            ).unwrap_or(false);
+
+            if upload_ok {
+                println!(
+                    "  {} forge-hub.tar.gz uploaded",
+                    crate::theme::style_success("✓", theme),
+                );
+                assets_uploaded += 1;
+            } else {
+                println!(
+                    "  {} Failed to upload forge-hub.tar.gz",
+                    crate::theme::style_error("✗", theme),
+                );
+            }
+
+            // Clean up local tarball
+            let _ = std::fs::remove_file(&tarball_path);
+        } else {
+            println!(
+                "  {} Failed to create hub tarball",
+                crate::theme::style_error("✗", theme),
+            );
+        }
+    } else {
+        println!(
+            "  {} No hub/ directory found — skipping hub tarball",
+            crate::theme::style_muted("ℹ", theme),
+        );
+    }
+
+    // Upload assets/forge-icon.png if it exists
+    let icon_path = repo_root.join("assets/forge-icon.png");
+    if icon_path.exists() {
+        println!(
+            "  {} Uploading forge-icon.png...",
+            crate::theme::style_label("→", theme),
+        );
+
+        let upload_ok = cmd_status(
+            "gh",
+            &[
+                "release",
+                "upload",
+                &tag_name,
+                &icon_path.to_string_lossy(),
+                "--repo",
+                &repo_slug,
+                "--clobber",
+            ],
+            &repo_root,
+        ).unwrap_or(false);
+
+        if upload_ok {
+            println!(
+                "  {} forge-icon.png uploaded",
+                crate::theme::style_success("✓", theme),
+            );
+            assets_uploaded += 1;
+        } else {
+            println!(
+                "  {} Failed to upload forge-icon.png",
+                crate::theme::style_error("✗", theme),
+            );
+        }
+    } else {
+        println!(
+            "  {} No assets/forge-icon.png found — skipping icon upload",
+            crate::theme::style_muted("ℹ", theme),
+        );
+    }
+
+    println!();
+
+    // ── Summary ─────────────────────────────────────────────────
+    if assets_uploaded > 0 {
+        println!(
+            "  {} {} asset(s) uploaded. Cast complete! 🎉",
+            crate::theme::style_success("✓", theme),
+            crate::theme::style_value(&assets_uploaded.to_string(), theme),
+        );
+    } else {
+        println!(
+            "  {} Release created with binary. No additional assets.",
+            crate::theme::style_success("✓", theme),
+        );
+    }
+    println!(
+        "  {} https://github.com/{}/releases/tag/{}",
+        crate::theme::style_label("Release URL:", theme),
+        crate::theme::style_value(&repo_slug, theme),
+        crate::theme::style_value(&tag_name, theme),
+    );
     println!();
 
     Ok(())

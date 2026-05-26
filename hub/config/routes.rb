@@ -44,6 +44,7 @@ Rails.application.routes.draw do
   get "/crucible" => "crucible#index"
   post "/crucible/chords" => "crucible#chords"
   post "/crucible/palette" => "crucible#palette"
+  post "/crucible/palette/upload" => "crucible#upload_palette_image"
   post "/crucible/diagram" => "crucible#diagram"
   get "/bridge" => "bridge#index"
   get "/bridge/sync" => "bridge#sync"
