@@ -238,4 +238,4 @@ bin/rails server -p 3003      # Start server
 
 ---
 
-*"The grid remembers everything. So should you."* 🎹🦞
+*"The grid remembers everything. So should you."* 🎹🦈
