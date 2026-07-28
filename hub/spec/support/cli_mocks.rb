@@ -4,7 +4,7 @@ require "open3"
 
 module CliMocks
   FORGE_BINARY = File.expand_path("~/.local/bin/forge").freeze
-  FORGE_VERSION = "1.0.0".freeze
+  FORGE_VERSION = "1.4.1".freeze
 
   def self.forge_list_response(backups: [])
     {

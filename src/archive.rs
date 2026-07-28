@@ -388,7 +388,9 @@ mod tests {
             "[core]\n\trepositoryformatversion = 0\n",
         )
         .expect("test: write config");
-        dir.to_str().expect("test temp dir should be valid UTF-8").to_string()
+        dir.to_str()
+            .expect("test temp dir should be valid UTF-8")
+            .to_string()
     }
 
     #[test]
@@ -436,7 +438,9 @@ mod tests {
         assert!(verify_archive(&archive_path, &sha256)?);
 
         let extract_dir = tmp.path().join("extracted");
-        let extract_str = extract_dir.to_str().ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
+        let extract_str = extract_dir
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
         extract_archive(&archive_path, extract_str)?;
 
         let extracted = extract_dir.join("testrepo.git");
@@ -467,12 +471,10 @@ mod tests {
         assert!(Path::new(&result.manifest_path).exists());
 
         let extract_dir = tmp.path().join("dedup_extracted");
-        let extract_str = extract_dir.to_str().ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
-        extract_dedup_archive(
-            &cfg,
-            &result.manifest_path,
-            extract_str,
-        )?;
+        let extract_str = extract_dir
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
+        extract_dedup_archive(&cfg, &result.manifest_path, extract_str)?;
 
         let extracted = extract_dir.join("testrepo.git");
         assert!(extracted.exists());
@@ -515,7 +517,9 @@ mod tests {
         assert!(verify_archive(&archive_path, &sha256)?);
 
         let extract_dir = tmp.path().join("extracted_hc");
-        let extract_str = extract_dir.to_str().ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
+        let extract_str = extract_dir
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("non-UTF8 extract path: {:?}", extract_dir))?;
         extract_archive(&archive_path, extract_str)?;
         assert!(extract_dir.join("testrepo.git").exists());
 

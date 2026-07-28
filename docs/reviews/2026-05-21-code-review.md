@@ -1,3 +1,13 @@
+# ARCHIVED — findings verified resolved in v1.4.1 (2026-07-28)
+#
+# Spot-check against current HEAD: C1 (bridge.rs now uses argv-form Command),
+# C2/C4 (hub controllers use Open3.capture3 argv), C3 (which? uses array form),
+# C5/C6 (unwraps replaced), H1 (paths via config), H3 (chars().take(10)),
+# H4 (localhost restriction + optional basic auth in application_controller).
+# Remaining `safe_command` call sites in tongs.rs use hardcoded strings only.
+# Kept for historical reference.
+
+
 # Forge Code Review — Surgical Audit
 
 **Date**: 2026-05-21

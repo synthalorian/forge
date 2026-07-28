@@ -146,9 +146,7 @@ pub fn run_temper(cfg: &Config) -> Result<()> {
         for hash in &chunk_hashes {
             let prefix: String = hash.chars().take(2).collect();
             let rest: String = hash.chars().skip(2).collect();
-            let chunk_path = chunks_dir
-                .join(&prefix)
-                .join(format!("{}.zst", rest));
+            let chunk_path = chunks_dir.join(&prefix).join(format!("{}.zst", rest));
             if !chunk_path.exists() {
                 missing_chunks += 1;
             }
@@ -436,15 +434,16 @@ pub fn run_search(cfg: &Config, query: &str, limit: usize) -> Result<()> {
         let temp_path = match temp_dir.path().to_str() {
             Some(p) => p.to_string(),
             None => {
-                println!("  {} {} — {}", crate::theme::style_error("✗", theme), crate::theme::style_accent(repo_name, theme), crate::theme::style_error("non-UTF-8 temp path", theme));
+                println!(
+                    "  {} {} — {}",
+                    crate::theme::style_error("✗", theme),
+                    crate::theme::style_accent(repo_name, theme),
+                    crate::theme::style_error("non-UTF-8 temp path", theme)
+                );
                 continue;
             }
         };
-        if let Err(e) = crate::archive::extract_dedup_archive(
-            cfg,
-            manifest_path,
-            &temp_path,
-        ) {
+        if let Err(e) = crate::archive::extract_dedup_archive(cfg, manifest_path, &temp_path) {
             println!(
                 "  {} {} — {}",
                 crate::theme::style_error("✗", theme),
@@ -640,24 +639,27 @@ fn run_diff(cfg: &Config, id1: &str, id2: Option<&str>) -> Result<()> {
     let backup1 = crate::db::get_backup_by_id(&conn, id1)?
         .ok_or_else(|| anyhow::anyhow!("Backup not found: {}", id1))?;
 
-    let backup2_id = match id2 {
-        Some(id) => id.to_string(),
-        None => {
-            // Find previous backup of same repo
-            conn.query_row(
+    let backup2_id =
+        match id2 {
+            Some(id) => id.to_string(),
+            None => {
+                // Find previous backup of same repo
+                conn.query_row(
                 "SELECT id FROM backups WHERE repo_name = ?1 AND id < ?2 ORDER BY id DESC LIMIT 1",
                 rusqlite::params![backup1.repo_name, backup1.id],
                 |row| row.get::<_, i64>(0),
             ).ok().map(|id| id.to_string())
             .ok_or_else(|| anyhow::anyhow!("No previous backup found for '{}'", backup1.repo_name))?
-        }
-    };
+            }
+        };
 
     let backup2 = crate::db::get_backup_by_id(&conn, &backup2_id)?
         .ok_or_else(|| anyhow::anyhow!("Backup not found: {}", backup2_id))?;
 
     // Use tar to list files in each archive for comparison
-    fn list_archive_files(archive_path: &std::path::Path) -> Result<std::collections::HashMap<String, String>> {
+    fn list_archive_files(
+        archive_path: &std::path::Path,
+    ) -> Result<std::collections::HashMap<String, String>> {
         let output = std::process::Command::new("tar")
             .args(["tvf", &archive_path.to_string_lossy()])
             .output()
@@ -680,21 +682,36 @@ fn run_diff(cfg: &Config, id1: &str, id2: Option<&str>) -> Result<()> {
     let archive2_path = std::path::Path::new(&backup2.archive_path);
 
     // Decompress if .zst
-    let (path1, cleanup1) = if archive1_path.extension().map_or(false, |e| e == "zst") {
-        let decompressed = std::env::temp_dir().join(format!("forge-diff-{}-{}.tar", backup1.id, backup2.id));
+    let (path1, cleanup1) = if archive1_path.extension().is_some_and(|e| e == "zst") {
+        let decompressed =
+            std::env::temp_dir().join(format!("forge-diff-{}-{}.tar", backup1.id, backup2.id));
         std::process::Command::new("zstd")
-            .args(["-d", &archive1_path.to_string_lossy(), "-o", &decompressed.to_string_lossy(), "-f"])
-            .status().ok();
+            .args([
+                "-d",
+                &archive1_path.to_string_lossy(),
+                "-o",
+                &decompressed.to_string_lossy(),
+                "-f",
+            ])
+            .status()
+            .ok();
         (decompressed, true)
     } else {
         (archive1_path.to_path_buf(), false)
     };
 
-    let (path2, cleanup2) = if archive2_path.extension().map_or(false, |e| e == "zst") {
+    let (path2, cleanup2) = if archive2_path.extension().is_some_and(|e| e == "zst") {
         let decompressed = std::env::temp_dir().join(format!("forge-diff-2-{}.tar", backup2.id));
         std::process::Command::new("zstd")
-            .args(["-d", &archive2_path.to_string_lossy(), "-o", &decompressed.to_string_lossy(), "-f"])
-            .status().ok();
+            .args([
+                "-d",
+                &archive2_path.to_string_lossy(),
+                "-o",
+                &decompressed.to_string_lossy(),
+                "-f",
+            ])
+            .status()
+            .ok();
         (decompressed, true)
     } else {
         (archive2_path.to_path_buf(), false)
@@ -703,20 +720,29 @@ fn run_diff(cfg: &Config, id1: &str, id2: Option<&str>) -> Result<()> {
     let files1 = list_archive_files(&path1)?;
     let files2 = list_archive_files(&path2)?;
 
-    if cleanup1 { let _ = std::fs::remove_file(&path1); }
-    if cleanup2 { let _ = std::fs::remove_file(&path2); }
+    if cleanup1 {
+        let _ = std::fs::remove_file(&path1);
+    }
+    if cleanup2 {
+        let _ = std::fs::remove_file(&path2);
+    }
 
     let added: Vec<&String> = files2.keys().filter(|k| !files1.contains_key(*k)).collect();
     let removed: Vec<&String> = files1.keys().filter(|k| !files2.contains_key(*k)).collect();
-    let changed: Vec<(&String, &String, &String)> = files1.keys()
+    let changed: Vec<(&String, &String, &String)> = files1
+        .keys()
         .filter(|k| files2.contains_key(*k) && files1[*k] != files2[*k])
         .map(|k| (k, &files1[k], &files2[k]))
         .collect();
 
     println!();
-    println!("{}", crate::theme::style_bold_header("Forge Anvil — Backup Diff", theme));
+    println!(
+        "{}",
+        crate::theme::style_bold_header("Forge Anvil — Backup Diff", theme)
+    );
     println!("{}", crate::theme::style_border(&"═".repeat(50), theme));
-    println!("  {} {} (#{}) vs {} (#{})",
+    println!(
+        "  {} {} (#{}) vs {} (#{})",
         crate::theme::style_label("Comparing:", theme),
         crate::theme::style_value(&backup1.repo_name, theme),
         crate::theme::style_muted(&backup1.id.to_string(), theme),
@@ -725,36 +751,68 @@ fn run_diff(cfg: &Config, id1: &str, id2: Option<&str>) -> Result<()> {
     );
 
     if added.is_empty() && removed.is_empty() && changed.is_empty() {
-        println!("  {} No differences found", crate::theme::style_success("✓", theme));
+        println!(
+            "  {} No differences found",
+            crate::theme::style_success("✓", theme)
+        );
     }
 
     if !added.is_empty() {
         println!();
-        println!("  {} {} file(s) added", crate::theme::style_success("+", theme), added.len());
+        println!(
+            "  {} {} file(s) added",
+            crate::theme::style_success("+", theme),
+            added.len()
+        );
         for f in added.iter().take(15) {
-            println!("    {} {}", crate::theme::style_success("+", theme), crate::theme::style_value(f, theme));
+            println!(
+                "    {} {}",
+                crate::theme::style_success("+", theme),
+                crate::theme::style_value(f, theme)
+            );
         }
         if added.len() > 15 {
-            println!("    {} {} more...", crate::theme::style_muted("...", theme), added.len() - 15);
+            println!(
+                "    {} {} more...",
+                crate::theme::style_muted("...", theme),
+                added.len() - 15
+            );
         }
     }
 
     if !removed.is_empty() {
         println!();
-        println!("  {} {} file(s) removed", crate::theme::style_error("-", theme), removed.len());
+        println!(
+            "  {} {} file(s) removed",
+            crate::theme::style_error("-", theme),
+            removed.len()
+        );
         for f in removed.iter().take(15) {
-            println!("    {} {}", crate::theme::style_error("-", theme), crate::theme::style_muted(f, theme));
+            println!(
+                "    {} {}",
+                crate::theme::style_error("-", theme),
+                crate::theme::style_muted(f, theme)
+            );
         }
         if removed.len() > 15 {
-            println!("    {} {} more...", crate::theme::style_muted("...", theme), removed.len() - 15);
+            println!(
+                "    {} {} more...",
+                crate::theme::style_muted("...", theme),
+                removed.len() - 15
+            );
         }
     }
 
     if !changed.is_empty() {
         println!();
-        println!("  {} {} file(s) changed", crate::theme::style_warning("~", theme), changed.len());
+        println!(
+            "  {} {} file(s) changed",
+            crate::theme::style_warning("~", theme),
+            changed.len()
+        );
         for (f, s1, s2) in changed.iter().take(10) {
-            println!("    {} {} ({} → {})",
+            println!(
+                "    {} {} ({} → {})",
                 crate::theme::style_warning("~", theme),
                 crate::theme::style_value(f, theme),
                 crate::theme::style_muted(s1, theme),
@@ -762,7 +820,11 @@ fn run_diff(cfg: &Config, id1: &str, id2: Option<&str>) -> Result<()> {
             );
         }
         if changed.len() > 10 {
-            println!("    {} {} more...", crate::theme::style_muted("...", theme), changed.len() - 10);
+            println!(
+                "    {} {} more...",
+                crate::theme::style_muted("...", theme),
+                changed.len() - 10
+            );
         }
     }
 

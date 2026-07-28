@@ -384,7 +384,8 @@ fn chunkstore_read_nonexistent_fails() -> Result<()> {
     let tmp = TempDir::new()?;
     let store = forge::chunkstore::ChunkStore::new(tmp.path().join("chunks"), 3)?;
 
-    let result = store.read_chunk("0000000000000000000000000000000000000000000000000000000000000000");
+    let result =
+        store.read_chunk("0000000000000000000000000000000000000000000000000000000000000000");
     assert!(result.is_err());
 
     Ok(())
@@ -400,7 +401,7 @@ fn scheduler_validate_cron_valid() -> Result<()> {
     let cfg = test_config(&forge_tmp);
     std::fs::create_dir_all(&cfg.archive_dir)?;
     std::fs::create_dir_all(cfg.db_path.parent().unwrap())?;
-    std::fs::create_dir_all(&cfg.llama_swap_config.parent().unwrap())?;
+    std::fs::create_dir_all(cfg.llama_swap_config.parent().unwrap())?;
 
     // Create a real directory so the path-exists check passes
     let target_dir = forge_tmp.path().join("myrepo");
@@ -415,7 +416,11 @@ fn scheduler_validate_cron_valid() -> Result<()> {
             }),
         },
     );
-    assert!(result.is_ok(), "valid cron should succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "valid cron should succeed: {:?}",
+        result.err()
+    );
 
     Ok(())
 }
@@ -426,7 +431,7 @@ fn scheduler_validate_cron_invalid() -> Result<()> {
     let cfg = test_config(&forge_tmp);
     std::fs::create_dir_all(&cfg.archive_dir)?;
     std::fs::create_dir_all(cfg.db_path.parent().unwrap())?;
-    std::fs::create_dir_all(&cfg.llama_swap_config.parent().unwrap())?;
+    std::fs::create_dir_all(cfg.llama_swap_config.parent().unwrap())?;
 
     // Create a real directory so the path-exists check passes
     let target_dir = forge_tmp.path().join("myrepo");
@@ -460,7 +465,14 @@ fn restore_fails_invalid_id() -> Result<()> {
         &cfg,
         &forge::cli::RestoreArgs {
             backup_id: "nonexistent".to_string(),
-            output: Some(forge_tmp.path().join("out").to_str().expect("path").to_string()),
+            output: Some(
+                forge_tmp
+                    .path()
+                    .join("out")
+                    .to_str()
+                    .expect("path")
+                    .to_string(),
+            ),
             ref_name: None,
             dry_run: false,
         },
@@ -536,7 +548,11 @@ fn backup_discover_repos_in_dir() -> Result<()> {
             full: false,
         },
     );
-    assert!(result.is_ok(), "backup --all should discover and succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "backup --all should discover and succeed: {:?}",
+        result.err()
+    );
 
     Ok(())
 }
