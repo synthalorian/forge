@@ -347,7 +347,7 @@ pub fn format_verse_brief(verse: &Verse, cfg: &Config) -> String {
         crate::theme::style_value(&verse.chapter.to_string(), theme),
         crate::theme::style_value(&format!(":{}", verse.verse), theme),
         crate::theme::style_muted(
-            &format!(" {}", &verse.text.chars().take(60).collect::<String>()),
+            &format!(" {}", verse.text.chars().take(60).collect::<String>()),
             theme
         ),
     )
@@ -365,7 +365,8 @@ mod tests {
 
         let resource = bible_db_resource_path();
         if resource.exists() {
-            std::fs::copy(&resource, data_dir.join("data/bible.db")).expect("failed to copy test bible.db");
+            std::fs::copy(&resource, data_dir.join("data/bible.db"))
+                .expect("failed to copy test bible.db");
         }
 
         Config {
@@ -676,7 +677,6 @@ mod tests {
             theme: "synthwave84".to_string(),
             llama_swap_config: tmp.path().join("llama-swap-config.yaml"),
         };
-        
 
         let path = ensure_bible_db(&cfg)?;
         assert!(path.exists());

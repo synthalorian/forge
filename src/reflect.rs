@@ -439,7 +439,8 @@ mod tests {
         let id = add_entry(&cfg, "Today I am grateful for peace and quiet.")?;
         assert!(id > 0);
 
-        let entry = get_entry(&cfg, id)?.ok_or_else(|| anyhow::anyhow!("entry {} not found", id))?;
+        let entry =
+            get_entry(&cfg, id)?.ok_or_else(|| anyhow::anyhow!("entry {} not found", id))?;
         assert_eq!(entry.id, id);
         assert_eq!(entry.content, "Today I am grateful for peace and quiet.");
         assert_eq!(entry.word_count, 8);
@@ -502,7 +503,8 @@ mod tests {
         let cfg = test_config(&tmp);
 
         let id = add_entry(&cfg, "")?;
-        let entry = get_entry(&cfg, id)?.ok_or_else(|| anyhow::anyhow!("entry {} not found", id))?;
+        let entry =
+            get_entry(&cfg, id)?.ok_or_else(|| anyhow::anyhow!("entry {} not found", id))?;
         assert_eq!(entry.content, "");
         assert_eq!(entry.word_count, 0);
 
@@ -516,7 +518,8 @@ mod tests {
 
         let content = "🙏 Peace be with you 🕊️ — 世界你好 — 日本語テスト";
         let id = add_entry(&cfg, content)?;
-        let entry = get_entry(&cfg, id)?.ok_or_else(|| anyhow::anyhow!("entry {} not found", id))?;
+        let entry =
+            get_entry(&cfg, id)?.ok_or_else(|| anyhow::anyhow!("entry {} not found", id))?;
         assert_eq!(entry.content, content);
 
         Ok(())

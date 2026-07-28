@@ -872,7 +872,7 @@ pub fn run_hooks_handler(cfg: &Config, action: &Option<HooksAction>) -> Result<(
     }
 }
 
-fn install_hook(cfg: &Config, theme: &crate::theme::Theme) -> Result<()> {
+fn install_hook(_cfg: &Config, theme: &crate::theme::Theme) -> Result<()> {
     let git_dir = std::process::Command::new("git")
         .args(["rev-parse", "--git-dir"])
         .output()
@@ -883,7 +883,9 @@ fn install_hook(cfg: &Config, theme: &crate::theme::Theme) -> Result<()> {
         anyhow::bail!("Not inside a git repository");
     }
 
-    let hook_path = std::path::PathBuf::from(&git_dir).join("hooks").join("post-commit");
+    let hook_path = std::path::PathBuf::from(&git_dir)
+        .join("hooks")
+        .join("post-commit");
     let hook_content = r#"#!/bin/bash
 # Forge auto-backup hook — installed by `forge grip hooks install`
 forge quench "$(git rev-parse --show-toplevel)" 2>/dev/null || true
@@ -921,7 +923,7 @@ forge quench "$(git rev-parse --show-toplevel)" 2>/dev/null || true
     Ok(())
 }
 
-fn list_hooks(cfg: &Config, theme: &crate::theme::Theme) -> Result<()> {
+fn list_hooks(_cfg: &Config, theme: &crate::theme::Theme) -> Result<()> {
     let git_dir = std::process::Command::new("git")
         .args(["rev-parse", "--git-dir"])
         .output()

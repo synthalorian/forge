@@ -32,10 +32,7 @@ fn run_status(cfg: &Config) -> Result<()> {
         ("Git", which_exists("git")),
         ("zstd", which_exists("zstd")),
         ("OpenCode", which_exists("opencode")),
-        (
-            "llama-swap",
-            cfg.llama_swap_config.exists(),
-        ),
+        ("llama-swap", cfg.llama_swap_config.exists()),
         ("Hermes", which_exists("hermes")),
         ("Codex CLI", which_exists("codex")),
         ("ripgrep", which_exists("rg")),
@@ -392,7 +389,13 @@ pub fn run_sync(cfg: &Config, verbose: bool) -> Result<()> {
         );
     }
     let forge_size = std::process::Command::new("du")
-        .args(["-sh", &cfg.archive_dir.parent().unwrap_or(&cfg.archive_dir).to_string_lossy()])
+        .args([
+            "-sh",
+            &cfg.archive_dir
+                .parent()
+                .unwrap_or(&cfg.archive_dir)
+                .to_string_lossy(),
+        ])
         .output()
         .map(|o| {
             let out = String::from_utf8_lossy(&o.stdout);

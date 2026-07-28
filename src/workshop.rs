@@ -351,8 +351,9 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
     );
 
     // Must be a git repo
-    let repo_root = cmd_stdout("git", &["rev-parse", "--show-toplevel"], &cwd)
-        .map_err(|_| anyhow::anyhow!("Not a git repository — run `forge cast` from inside a git repo"))?;
+    let repo_root = cmd_stdout("git", &["rev-parse", "--show-toplevel"], &cwd).map_err(|_| {
+        anyhow::anyhow!("Not a git repository — run `forge cast` from inside a git repo")
+    })?;
     let repo_root = std::path::Path::new(&repo_root).to_path_buf();
 
     println!(
@@ -362,12 +363,10 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
     );
 
     // Get remote origin to derive owner/repo
-    let remote_url = cmd_stdout(
-        "git",
-        &["remote", "get-url", "origin"],
-        &repo_root,
-    )
-    .map_err(|_| anyhow::anyhow!("No git remote 'origin' configured — cannot determine GitHub repo"))?;
+    let remote_url =
+        cmd_stdout("git", &["remote", "get-url", "origin"], &repo_root).map_err(|_| {
+            anyhow::anyhow!("No git remote 'origin' configured — cannot determine GitHub repo")
+        })?;
 
     // Parse owner/repo from remote URL (supports git@github.com:owner/repo and https://github.com/owner/repo)
     let repo_slug = remote_url
@@ -378,7 +377,10 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
     let repo_slug = repo_slug.to_string();
 
     if !repo_slug.contains('/') {
-        anyhow::bail!("Could not parse GitHub owner/repo from remote URL: {}", remote_url);
+        anyhow::bail!(
+            "Could not parse GitHub owner/repo from remote URL: {}",
+            remote_url
+        );
     }
 
     println!(
@@ -463,7 +465,9 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
     let gh_available = cmd_status("which", &["gh"], &cwd).unwrap_or(false)
         || cmd_status("command", &["-v", "gh"], &cwd).unwrap_or(false);
     if !gh_available {
-        anyhow::bail!("GitHub CLI (`gh`) is not installed. Install it from https://cli.github.com/");
+        anyhow::bail!(
+            "GitHub CLI (`gh`) is not installed. Install it from https://cli.github.com/"
+        );
     }
 
     // Check gh auth status
@@ -481,7 +485,12 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
     let release_notes = if let Some(ref tag) = last_tag {
         cmd_stdout(
             "git",
-            &["log", "--oneline", "--no-decorate", &format!("{}..HEAD", tag)],
+            &[
+                "log",
+                "--oneline",
+                "--no-decorate",
+                &format!("{}..HEAD", tag),
+            ],
             &repo_root,
         )
         .unwrap_or_default()
@@ -567,9 +576,16 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
         // Create tarball from hub/ directory using tar
         let tar_ok = cmd_status(
             "tar",
-            &["czf", &tarball_path.to_string_lossy(), "-C", &repo_root.to_string_lossy(), "hub"],
+            &[
+                "czf",
+                &tarball_path.to_string_lossy(),
+                "-C",
+                &repo_root.to_string_lossy(),
+                "hub",
+            ],
             &repo_root,
-        ).unwrap_or(false);
+        )
+        .unwrap_or(false);
 
         if tar_ok {
             println!(
@@ -590,7 +606,8 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
                     "--clobber",
                 ],
                 &repo_root,
-            ).unwrap_or(false);
+            )
+            .unwrap_or(false);
 
             if upload_ok {
                 println!(
@@ -640,7 +657,8 @@ pub fn run_cast(cfg: &Config) -> Result<()> {
                 "--clobber",
             ],
             &repo_root,
-        ).unwrap_or(false);
+        )
+        .unwrap_or(false);
 
         if upload_ok {
             println!(

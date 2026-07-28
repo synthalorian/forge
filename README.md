@@ -179,13 +179,14 @@ The visual command center. A Rails 8 web GUI that sits on top of Forge CLI, givi
 - **Backup Browser** — Browse all backups with search, pagination, restore, and chart data
 - **Schedule Manager** — Create, toggle, and delete backup schedules with cron expressions
 - **Flame** — Scripture search (debounced live search), reference lookup, encrypted journal browser with pagination
-- **Bellows** — Agent detection, session management, chat-style message history, quick strike, pipeline runner
+- **Bellows** — Agent detection, session management, chat-style message history, quick strike, visual pipeline builder (step cards with presets, TOML serialization, pipeline runner)
 - **Tongs** — System dashboard with GPU/temperatures/resource bars, diagnostics, dotfiles tracker, services list
 - **Crucible** — Creative tools bridge (chords, palettes, diagrams, markdown, image generation, palette from-image extraction)
 - **Bridge** — Integration status for 11+ tools, lifecycle hooks, sync dashboard, notification testing, Omarchy detection
 - **Synthwave84 Theme** — Deep purple palette with neon accents, CRT scanlines, horizon glow, glass morphism
 - **Theme Switcher** — Toggle between Synthwave84, Midnight, Ocean, and Light variants
 - **Global Search** — Search across all pillars from a unified search bar
+- **Mobile Responsive** — Slide-in sidebar with overlay, responsive padding/grids on small screens
 
 ### Install & Run
 
@@ -221,8 +222,9 @@ The Hub reads from the same `~/.forge/` directory as the CLI. No separate config
 # Run with hot-reload (Tailwind + Stimulus)
 bin/dev
 
-# Run tests
-bin/rails test
+# Run tests (RSpec)
+bundle install
+bundle exec rspec
 
 # Rebuild Tailwind after theme changes
 bin/rails tailwindcss:build
@@ -356,6 +358,24 @@ forge init
 | Hub — palette from-image extraction via CLI bridge | ✅ Done |
 | Hub — Stimulus dotfile tracker (replaces inline JS) | ✅ Done |
 | Hub — CLI/UI feature parity alignment (harmonies, diagram types) | ✅ Done |
+||
+| **v1.2.0 — Creative & Real-time** | |
+| L-system fractals (ASCII + SVG) | ✅ Done |
+| Theme export `--write` (Alacritty/Kitty/Ghostty) | ✅ Done |
+| Git hooks automation | ✅ Done |
+| Archive browser | ✅ Done |
+| Action Cable backup progress | ✅ Done |
+||
+| **v1.3.0 — Media & Plans** | |
+| Palette extraction from uploaded images | ✅ Done |
+| `forge cast` release flow | ✅ Done |
+| Backup diff | ✅ Done |
+| Reading plans | ✅ Done |
+||
+| **v1.4.0 — Visual Pipelines & Mobile** | |
+| Visual pipeline builder — step cards, presets, TOML serialization | ✅ Done |
+| 4 pipeline presets (Code Review, Research & Write, Code Gen + Test, Data Pipeline) | ✅ Done |
+| Mobile responsive sidebar + layout | ✅ Done |
 
 ---
 

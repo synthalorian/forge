@@ -9,7 +9,7 @@ module ForgeHelpers
 
   def with_mock_forge(responses = {})
     defaults = {
-      "version" => "1.0.0",
+      "version" => "1.4.1",
       "list --json" => [].to_json,
       "status" => "ok"
     }.merge(responses)

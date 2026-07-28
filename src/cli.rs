@@ -430,7 +430,10 @@ pub enum MeltAction {
         preset: Option<String>,
         #[arg(long, help = "Custom axiom string (overrides preset)")]
         axiom: Option<String>,
-        #[arg(long, help = "Production rule(s) in format: X→Y+F, Y→FX (comma-separated)")]
+        #[arg(
+            long,
+            help = "Production rule(s) in format: X→Y+F, Y→FX (comma-separated)"
+        )]
         rule: Option<String>,
         #[arg(long, default_value = "4", help = "Number of iterations (1-8)")]
         iterations: Option<usize>,

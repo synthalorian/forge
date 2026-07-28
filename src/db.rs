@@ -563,7 +563,8 @@ mod tests {
         entry.backup_type = BackupType::Incremental;
         insert_backup(&conn, &entry)?;
 
-        let fetched = get_backup_by_id(&conn, "1")?.expect("test: should fetch incremental backup by id '1'");
+        let fetched =
+            get_backup_by_id(&conn, "1")?.expect("test: should fetch incremental backup by id '1'");
         assert_eq!(fetched.backup_type, BackupType::Incremental);
 
         Ok(())
@@ -578,7 +579,8 @@ mod tests {
         let entry = sample_backup_entry();
         insert_backup(&conn, &entry)?;
 
-        let fetched = get_backup_by_id(&conn, "test-repo")?.expect("test: should fetch backup by name 'test-repo'");
+        let fetched = get_backup_by_id(&conn, "test-repo")?
+            .expect("test: should fetch backup by name 'test-repo'");
         assert_eq!(fetched.repo_name, "test-repo");
 
         Ok(())

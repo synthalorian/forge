@@ -361,20 +361,23 @@ fn load_custom_themes_from_disk() -> HashMap<String, Theme> {
             if ALL_THEMES.iter().any(|t| t.name == name) {
                 continue;
             }
-            map.insert(name.clone(), Theme {
-                name: "", // filled from the HashMap key on lookup
-                header: CustomThemeDef::hex_to_color(&custom.header),
-                accent: CustomThemeDef::hex_to_color(&custom.accent),
-                success: CustomThemeDef::hex_to_color(&custom.success),
-                error: CustomThemeDef::hex_to_color(&custom.error),
-                warning: CustomThemeDef::hex_to_color(&custom.warning),
-                info: CustomThemeDef::hex_to_color(&custom.info),
-                muted: CustomThemeDef::hex_to_color(&custom.muted),
-                border: CustomThemeDef::hex_to_color(&custom.border),
-                value: CustomThemeDef::hex_to_color(&custom.value),
-                label: CustomThemeDef::hex_to_color(&custom.label),
-                progress_bar: CustomThemeDef::hex_to_color(&custom.progress_bar),
-            });
+            map.insert(
+                name.clone(),
+                Theme {
+                    name: "", // filled from the HashMap key on lookup
+                    header: CustomThemeDef::hex_to_color(&custom.header),
+                    accent: CustomThemeDef::hex_to_color(&custom.accent),
+                    success: CustomThemeDef::hex_to_color(&custom.success),
+                    error: CustomThemeDef::hex_to_color(&custom.error),
+                    warning: CustomThemeDef::hex_to_color(&custom.warning),
+                    info: CustomThemeDef::hex_to_color(&custom.info),
+                    muted: CustomThemeDef::hex_to_color(&custom.muted),
+                    border: CustomThemeDef::hex_to_color(&custom.border),
+                    value: CustomThemeDef::hex_to_color(&custom.value),
+                    label: CustomThemeDef::hex_to_color(&custom.label),
+                    progress_bar: CustomThemeDef::hex_to_color(&custom.progress_bar),
+                },
+            );
         }
     }
     map

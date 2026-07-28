@@ -1441,9 +1441,9 @@ fn run_fractal(
     println!();
 
     if fmt == "svg" {
-        render_lsystem_svg(&lstring, resolved_angle, &theme)?;
+        render_lsystem_svg(&lstring, resolved_angle, theme)?;
     } else {
-        render_lsystem_ascii(&lstring, resolved_angle, &theme);
+        render_lsystem_ascii(&lstring, resolved_angle, theme);
     }
 
     Ok(())
@@ -1485,19 +1485,28 @@ fn preset_lsystem(name: &str) -> Option<LSystemSpec> {
         }),
         "hilbert" => Some(LSystemSpec {
             axiom: "A".to_string(),
-            rules: vec![('A', "-BF+AFA+FB-".to_string()), ('B', "+AF-BFB-FA+".to_string())],
+            rules: vec![
+                ('A', "-BF+AFA+FB-".to_string()),
+                ('B', "+AF-BFB-FA+".to_string()),
+            ],
             angle: 90.0,
             name: "Hilbert Curve".to_string(),
         }),
         "gosper" | "flowsnake" => Some(LSystemSpec {
             axiom: "A".to_string(),
-            rules: vec![('A', "A-B--B+A++AA+B-".to_string()), ('B', "+A-BB--B-A++A+B".to_string())],
+            rules: vec![
+                ('A', "A-B--B+A++AA+B-".to_string()),
+                ('B', "+A-BB--B-A++A+B".to_string()),
+            ],
             angle: 60.0,
             name: "Gosper Flowsnake".to_string(),
         }),
         "weed" => Some(LSystemSpec {
             axiom: "X".to_string(),
-            rules: vec![('X', "F[-X][X]F[-X]+FX".to_string()), ('F', "FF".to_string())],
+            rules: vec![
+                ('X', "F[-X][X]F[-X]+FX".to_string()),
+                ('F', "FF".to_string()),
+            ],
             angle: 30.0,
             name: "Weed".to_string(),
         }),
@@ -1525,12 +1534,8 @@ fn resolve_lsystem_spec(
     }
 
     // Use custom axiom and rules
-    let ax = axiom
-        .clone()
-        .unwrap_or_else(|| "F".to_string());
-    let rules_str = rule
-        .clone()
-        .unwrap_or_else(|| "F→F+F-F-F+F".to_string());
+    let ax = axiom.clone().unwrap_or_else(|| "F".to_string());
+    let rules_str = rule.clone().unwrap_or_else(|| "F→F+F-F-F+F".to_string());
     let name = format!("\"{}\"", ax);
 
     (ax, rules_str, default_angle, name)
@@ -1543,7 +1548,10 @@ fn parse_rules(spec: &str) -> Vec<(char, String)> {
     for part in spec.split(',') {
         let part = part.trim();
         // Try Unicode arrow → first, then → with different forms, then ASCII ->
-        let arrow_pos = part.find('→').or_else(|| part.find("->")).or_else(|| part.find("=>"));
+        let arrow_pos = part
+            .find('→')
+            .or_else(|| part.find("->"))
+            .or_else(|| part.find("=>"));
         if let Some(pos) = arrow_pos {
             let key_char = part[..pos].trim().chars().next();
             // For Unicode → which is 3 bytes, we need to skip past the full arrow
@@ -1554,14 +1562,8 @@ fn parse_rules(spec: &str) -> Vec<(char, String)> {
                         rules.push((k, val));
                     }
                 }
-            } else if part[pos..].starts_with("->") {
-                if let Some(k) = key_char {
-                    let val = part[pos + 2..].trim().to_string();
-                    if !val.is_empty() {
-                        rules.push((k, val));
-                    }
-                }
-            } else if part[pos..].starts_with("=>") {
+            } else if part[pos..].starts_with("->") || part[pos..].starts_with("=>") {
+                // Both ASCII arrows are 2 bytes; identical handling
                 if let Some(k) = key_char {
                     let val = part[pos + 2..].trim().to_string();
                     if !val.is_empty() {
@@ -1732,7 +1734,8 @@ fn render_lsystem_ascii(lstring: &str, angle_deg: f64, theme: &crate::theme::The
     }
 
     // Render the grid
-    println!("  {} {}×{}", 
+    println!(
+        "  {} {}×{}",
         crate::theme::style_label("Canvas:", theme),
         crate::theme::style_value(&canvas_w.to_string(), theme),
         crate::theme::style_value(&canvas_h.to_string(), theme)
@@ -1759,7 +1762,9 @@ fn render_lsystem_ascii(lstring: &str, angle_deg: f64, theme: &crate::theme::The
             let has_d1_inv = d1_conn.contains(&(cx - 1, cy - 1)); // ↖ (incoming ↘)
             let has_d2_inv = d2_conn.contains(&(cx + 1, cy - 1)); // ↗ (incoming ↙)
 
-            let ch = match (has_right, has_down, has_left, has_up, has_d1, has_d2, has_d1_inv, has_d2_inv) {
+            let ch = match (
+                has_right, has_down, has_left, has_up, has_d1, has_d2, has_d1_inv, has_d2_inv,
+            ) {
                 // Straight lines
                 (true, false, true, false, false, false, false, false) => '─',
                 (false, true, false, true, false, false, false, false) => '│',
@@ -1799,11 +1804,7 @@ fn render_lsystem_ascii(lstring: &str, angle_deg: f64, theme: &crate::theme::The
 }
 
 /// Render L-system to SVG format printed to stdout.
-fn render_lsystem_svg(
-    lstring: &str,
-    angle_deg: f64,
-    theme: &crate::theme::Theme,
-) -> Result<()> {
+fn render_lsystem_svg(lstring: &str, angle_deg: f64, theme: &crate::theme::Theme) -> Result<()> {
     let mut points: Vec<(f64, f64)> = Vec::new();
     let mut turtle = Turtle {
         x: 0.0,
@@ -1880,12 +1881,11 @@ fn render_lsystem_svg(
     // Detect theme foreground color for stroke
     let stroke = "currentColor";
 
-    println!("{}", r#"  <svg xmlns="http://www.w3.org/2000/svg""#);
+    println!("  <svg xmlns=\"http://www.w3.org/2000/svg\"");
     println!(
-        r#"    viewBox="0 0 {:.0} {:.0}" {}>"#,
+        r#"    viewBox="0 0 {:.0} {:.0}" >"#,
         view_w.ceil(),
-        view_h.ceil(),
-        ""
+        view_h.ceil()
     );
     println!("    <path d=\"{}\"", path_data.trim());
     println!(
