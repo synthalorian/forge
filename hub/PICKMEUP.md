@@ -8,7 +8,7 @@
 
 ## What's Complete
 
-### Forge CLI (Rust) — `/home/synthalorian 🎹🤺/projects/forge`
+### Forge CLI (Rust) — `/home/synth/projects/forge`
 
 | Phase | Module | Files | Status |
 |-------|--------|-------|--------|
@@ -21,7 +21,7 @@
 
 **Cargo.toml dependencies added for Phase 2A:** `regex = "1"`, `aes-gcm = "0.10"`, `rand = "0.8"`
 
-### Forge Hub (Rails) — `/home/synthalorian 🎹🤺/projects/forge-hub`
+### Forge Hub (Rails) — `/home/synth/projects/forge-hub`
 
 | Wave | Module | Files | Status |
 |------|--------|-------|--------|
@@ -41,13 +41,13 @@
 ### Immediate (Next Session Should Start Here)
 
 #### 1. Fix Rust Audit CRITICALs (30 min)
-**File: `/home/synthalorian 🎹🤺/projects/forge/src/db.rs`**
+**File: `/home/synth/projects/forge/src/db.rs`**
 - `row_to_backup_entry` (line 58) uses positional column indices (`row.get(0)`, `row.get(1)`, etc.)
 - **Fix to:** Named column access (`row.get("id")?`, `row.get("repo_name")?`, etc.)
 - Same issue in `list_schedules` (line 308) — uses `row.get(0)` through `row.get(5)`
 - This is fragile: if column order changes, it silently returns wrong data
 
-**File: `/home/synthalorian 🎹🤺/projects/forge/src/backup.rs`**
+**File: `/home/synth/projects/forge/src/backup.rs`**
 - Temp dir (line 188-189) uses `forge-bare-{repo_name}-{pid}` — race condition if same process backs up same repo concurrently
 - **Fix to:** Use `tempfile::tempdir()` for automatic cleanup and uniqueness (crate already in Cargo.toml)
 
@@ -99,7 +99,7 @@ Per `PLAN.md` Phase 2B:
 
 ### Forge CLI
 ```
-/home/synthalorian 🎹🤺/projects/forge/
+/home/synth/projects/forge/
 ├── src/
 │   ├── main.rs              — Entry point, dispatches CLI commands
 │   ├── lib.rs               — Module declarations
@@ -128,7 +128,7 @@ Per `PLAN.md` Phase 2B:
 
 ### Forge Hub
 ```
-/home/synthalorian 🎹🤺/projects/forge-hub/
+/home/synth/projects/forge-hub/
 ├── app/
 │   ├── controllers/
 │   │   ├── anvil/
@@ -198,12 +198,12 @@ Per `PLAN.md` Phase 2B:
 
 ```bash
 # Forge CLI (Rust)
-cd /home/synthalorian 🎹🤺/projects/forge
+cd /home/synth/projects/forge
 cargo test                    # 69 unit + 9 integration tests
 cargo build --release         # Binary at target/release/forge
 
 # Forge Hub (Rails)
-cd /home/synthalorian 🎹🤺/projects/forge-hub
+cd /home/synth/projects/forge-hub
 bin/rspec                     # 85 examples
 bin/rails server              # http://localhost:3000
 
