@@ -448,7 +448,7 @@ Licensed under [Apache License 2.0](LICENSE).
 
 ---
 
-*"The grid remembers everything. So should you."* 🎹🦞
+*"The grid remembers everything. So should you."* ⚫🦞
 
 ---
 
