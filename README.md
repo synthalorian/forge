@@ -1,3 +1,5 @@
+![forge](.github/preview.png)
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/forge-icon.png">
   <img src="assets/forge-icon.png" alt="Forge" width="400">
