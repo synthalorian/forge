@@ -65,7 +65,7 @@ tempfile = "3"
 
 # Phase 2A — Spirit module
 regex = "1"
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 rand = "0.8"
 
 [dev-dependencies]
