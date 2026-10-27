@@ -37,7 +37,7 @@ anyhow = "1"
 thiserror = "2"
 
 # Progress bars
-indicatif = "0.17"
+indicatif = "0.18"
 
 # Compression
 zstd = "0.13"
